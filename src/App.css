@@ -1,0 +1,338 @@
+/* ── VirtualMeadow App Styles ─────────────────────────────────────── */
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:        #1c1c1e;
+  --surface:   #2a2a2d;
+  --border:    #3a3a3f;
+  --accent:    #f5a623;
+  --accent2:   #4caf50;
+  --text:      #e8e8ea;
+  --text-dim:  #888;
+  --title-h:   32px;
+  --toolbar-h: 36px;
+  --drag-sz:   5px;
+}
+
+html, body, #root {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+}
+
+/* ── Title bar ────────────────────────────────────────────────────── */
+.titlebar {
+  height: var(--title-h);
+  background: linear-gradient(135deg, #1a2a0a 0%, #0a1a1a 100%);
+  display: flex; align-items: center;
+  padding: 0 14px;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  color: var(--accent);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  user-select: none;
+}
+.titlebar span { color: #888; font-weight: 400; font-size: 12px; margin-left: 6px; }
+
+/* ── Main app shell ───────────────────────────────────────────────── */
+.app {
+  display: flex; flex-direction: column;
+  width: 100%; height: 100%;
+  overflow: hidden;
+}
+
+/* ── Toolbar ──────────────────────────────────────────────────────── */
+.toolbar {
+  height: var(--toolbar-h);
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center;
+  padding: 0 8px;
+  gap: 4px;
+  flex-shrink: 0;
+}
+.toolbar-btn {
+  background: #38383c;
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 3px 10px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 12px;
+  transition: background 0.15s;
+}
+.toolbar-btn:hover { background: #4a4a50; }
+.toolbar-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
+.toolbar-status {
+  margin-left: auto;
+  font-size: 11px;
+  color: var(--text-dim);
+  display: flex; gap: 12px; align-items: center;
+}
+.toolbar-status .mode-badge {
+  background: var(--accent2);
+  color: #000;
+  padding: 1px 7px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 600;
+}
+.toolbar-status .mode-badge.hover {
+  background: #2196f3;
+  color: #fff;
+}
+
+/* ── Workspace (viewports + tabs) ────────────────────────────────── */
+.workspace {
+  display: flex; flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.viewport-area {
+  display: flex;
+  min-height: 0;
+  overflow: hidden;
+}
+.tab-area {
+  display: flex; flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* ── Drag handle (vertical, between viewport & tab) ──────────────── */
+.vdrag-handle {
+  height: 10px;
+  background: var(--border);
+  cursor: row-resize;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  position: relative;
+  z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+}
+.vdrag-handle:hover, .vdrag-handle.dragging { background: var(--accent); }
+
+/* Collapse arrow buttons inside the drag handle */
+.vdrag-arrow {
+  position: absolute;
+  font-size: 8px;
+  color: rgba(255,255,255,0.35);
+  cursor: pointer;
+  padding: 0 6px;
+  line-height: 10px;
+  z-index: 11;
+  pointer-events: auto;
+  user-select: none;
+  transition: color 0.15s;
+}
+.vdrag-arrow:hover { color: var(--accent); }
+.vdrag-arrow-up   { left: calc(50% - 36px); }
+.vdrag-arrow-down { left: calc(50% + 12px); }
+
+/* ── Vertical collapse restore strips ────────────────────────────── */
+.vcol-strip {
+  display: flex; align-items: center; justify-content: center;
+  height: 18px;
+  background: #1e2a1e;
+  border: 1px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+  z-index: 10;
+  user-select: none;
+}
+.vcol-strip:hover { background: #2a3a2a; }
+.vcol-strip span {
+  font-size: 10px;
+  color: var(--accent2);
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.vcol-strip-top    { border-top: none; }
+.vcol-strip-bottom { border-bottom: none; }
+
+/* ── Viewport Container ───────────────────────────────────────────── */
+.viewport-container {
+  display: flex;
+  width: 100%; height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ── Horizontal drag handle (between the two viewports) ─────────── */
+.hdrag-handle {
+  width: var(--drag-sz);
+  background: var(--border);
+  cursor: col-resize;
+  flex-shrink: 0;
+  z-index: 5;
+  transition: background 0.15s;
+  position: relative;
+}
+.hdrag-handle:hover, .hdrag-handle.dragging { background: var(--accent); }
+.hdrag-handle::after {
+  content: '';
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  height: 30px; width: 2px;
+  background: #555; border-radius: 1px;
+}
+
+/* ── Collapse strip ──────────────────────────────────────────────── */
+.collapse-strip {
+  display: flex; align-items: center; justify-content: center;
+  width: 18px;
+  background: #232325;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s;
+}
+.collapse-strip:hover { background: #38383c; }
+.collapse-strip-r {
+  border-right: none;
+  border-left: 1px solid var(--border);
+}
+.collapse-strip .arrow { color: var(--text-dim); font-size: 10px; }
+
+/* ── Single Viewport ──────────────────────────────────────────────── */
+.viewport {
+  display: flex; flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  background: #0a0a0a;
+  flex: 1;
+  min-width: 0;
+}
+
+/* Canvas fills remaining space */
+.viewport-canvas-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+}
+.viewport-canvas-wrap canvas {
+  position: absolute;
+  top: 0; left: 0;
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+
+/* ── View selector thumbnails ────────────────────────────────────── */
+.view-selector {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(0,0,0,0.7);
+  position: absolute;
+  bottom: 6px; left: 6px;
+  border-radius: 6px;
+  z-index: 10;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.view-thumb {
+  width: 44px; height: 30px;
+  border-radius: 4px;
+  cursor: pointer;
+  border: 2px solid transparent;
+  background: #222;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  gap: 2px;
+  transition: border-color 0.15s, background 0.15s;
+  user-select: none;
+}
+.view-thumb:hover { background: #333; border-color: rgba(245,166,35,0.4); }
+.view-thumb.active { border-color: var(--accent); background: #2a2000; }
+.view-thumb .vt-icon { font-size: 14px; line-height: 1; }
+.view-thumb .vt-label { font-size: 7px; color: var(--text-dim); letter-spacing: 0.3px; text-transform: uppercase; }
+.view-thumb.active .vt-label { color: var(--accent); }
+
+/* Viewport label (top-left) */
+.viewport-label {
+  position: absolute;
+  top: 6px; left: 6px;
+  font-size: 10px;
+  color: rgba(255,255,255,0.5);
+  background: rgba(0,0,0,0.5);
+  padding: 2px 7px;
+  border-radius: 10px;
+  z-index: 10;
+  pointer-events: none;
+  letter-spacing: 0.3px;
+}
+
+/* ── Tab Panel ────────────────────────────────────────────────────── */
+.tab-panel {
+  display: flex; flex-direction: column;
+  height: 100%;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  overflow: hidden;
+}
+.tab-bar {
+  display: flex;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.tab-btn {
+  padding: 6px 14px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  user-select: none;
+  background: none;
+  border-top: none; border-left: none; border-right: none;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+.tab-content {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 12px 16px;
+  line-height: 1.6;
+  font-size: 12px;
+}
+.tab-content::-webkit-scrollbar { width: 6px; }
+.tab-content::-webkit-scrollbar-thumb { background: #444; border-radius: 3px; }
+
+/* Help tab content */
+.help-section { margin-bottom: 16px; }
+.help-section h3 {
+  color: var(--accent);
+  font-size: 12px;
+  margin-bottom: 6px;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+.help-table { width: 100%; border-collapse: collapse; }
+.help-table td {
+  padding: 3px 8px;
+  vertical-align: top;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.help-table td:first-child {
+  white-space: nowrap;
+  color: var(--accent);
+  font-family: monospace;
+  font-size: 11px;
+  min-width: 90px;
+}
+.help-note { color: var(--text-dim); font-style: italic; margin-top: 4px; font-size: 11px; }
