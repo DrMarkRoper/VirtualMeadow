@@ -60,6 +60,7 @@ function buildTerrain(getTerrainHeight) {
 function buildFlowers(getTerrainHeight, seed) {
   const group = new THREE.Group();
   group.name = 'flowers';
+  const flowerData = [];   // collected for 2-D map rendering
 
   // Shared geometries
   const stemGeo    = new THREE.CylinderGeometry(0.02, 0.025, 0.5, 5);
@@ -94,6 +95,7 @@ function buildFlowers(getTerrainHeight, seed) {
       const wy = getTerrainHeight(wx, wz);
 
       const s = ft.scale * (0.8 + r3 * 0.5);
+      flowerData.push({ x: wx, z: wz, petalColor: ft.petalColor, centreColor: ft.centreColor, scale: s });
       const flower = new THREE.Group();
       flower.position.set(wx, wy, wz);
       flower.rotation.y = r3 * Math.PI * 2;
@@ -125,7 +127,7 @@ function buildFlowers(getTerrainHeight, seed) {
     group.add(flowerGroup);
   });
 
-  return group;
+  return { group, flowerData };
 }
 
 // ─── Sky dome ────────────────────────────────────────────────────────────────
@@ -197,7 +199,7 @@ export function buildScene(seed = 12345) {
   scene.add(terrain);
 
   // Flowers
-  const flowers = buildFlowers(getTerrainHeight, seed);
+  const { group: flowers, flowerData } = buildFlowers(getTerrainHeight, seed);
   scene.add(flowers);
 
   // Sky + clouds
@@ -224,5 +226,5 @@ export function buildScene(seed = 12345) {
     });
   }
 
-  return { scene, getTerrainHeight, serialise, deserialise, dispose };
+  return { scene, getTerrainHeight, serialise, deserialise, dispose, flowerData };
 }
