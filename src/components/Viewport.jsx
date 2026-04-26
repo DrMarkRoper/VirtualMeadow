@@ -131,22 +131,7 @@ const Viewport = forwardRef(function Viewport(
           // Top-down orthographic, centred on bee.
           // rotation.x = -PI/2 was set at init and never changes — just update XZ.
           orthoCam.position.set(bee.position.x, 300, bee.position.z);
-
-          // Switch to flat ambient-only lighting so the top-down sun doesn't
-          // wash the green terrain to near-white (upward normals get max sun).
-          const L = sim.lights;
-          if (L) {
-            L.sun.intensity  = 0;
-            L.hemi.intensity = 0;
-            L.ambient.intensity = 1.8;
-          }
           renderer.render(sim.scene, orthoCam);
-          // Restore lighting for all other views.
-          if (L) {
-            L.sun.intensity  = 1.2;
-            L.hemi.intensity = 0.4;
-            L.ambient.intensity = 0.5;
-          }
           break;
         }
         case 'bee_eye': {

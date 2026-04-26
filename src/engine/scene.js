@@ -224,6 +224,5 @@ export function buildScene(seed = 12345) {
     });
   }
 
-  return { scene, getTerrainHeight, serialise, deserialise, dispose,
-           lights: { ambient: ambientLight, sun: sunLight, hemi: hemiLight } };
+  return { scene, getTerrainHeight, serialise, deserialise, dispose };
 }

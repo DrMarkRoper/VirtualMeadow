@@ -159,18 +159,6 @@ function buildBeeModel() {
   stinger.position.set(0, 0, 0.62);
   bodyGroup.add(stinger);
 
-  // ── Map marker — large flat disc visible from above, edge-on from the side ─
-  // radius 4 m so it shows clearly in the top-down ortho view (160 m across).
-  const markerGeo = new THREE.CircleGeometry(4, 16);
-  const markerMat = new THREE.MeshBasicMaterial({
-    color: 0xff6600, side: THREE.DoubleSide, depthWrite: false,
-  });
-  const mapMarker = new THREE.Mesh(markerGeo, markerMat);
-  mapMarker.rotation.x = -Math.PI / 2;  // lie flat in XZ plane
-  mapMarker.position.set(0, 0.6, 0);    // just above body
-  mapMarker.name = 'mapMarker';
-  group.add(mapMarker);                  // added to root so it doesn't rotate with body
-
   return { group, bodyGroup, headGroup };
 }
 
