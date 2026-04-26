@@ -40,7 +40,7 @@ export default function App() {
   // ── Initialise simulation ─────────────────────────────────────────
   useEffect(() => {
     const seed = 12345;
-    const { scene, getTerrainHeight, serialise, deserialise, dispose } = buildScene(seed);
+    const { scene, getTerrainHeight, serialise, deserialise, dispose, flowerData } = buildScene(seed);
 
     const bee = new BeeController(getTerrainHeight);
     bee.position.set(0, 4, 10);
@@ -48,7 +48,7 @@ export default function App() {
 
     const beeEye = new BeeEyeRenderer();
 
-    simRef.current = { scene, bee, beeEye, getTerrainHeight, serialise, deserialise, dispose, seed };
+    simRef.current = { scene, bee, beeEye, getTerrainHeight, serialise, deserialise, dispose, seed, flowerData };
 
     return () => {
       bee.dispose();
