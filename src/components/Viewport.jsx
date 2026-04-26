@@ -258,6 +258,35 @@ const Viewport = forwardRef(function Viewport(
       const canvas = glCanvasRef.current;
       const { perspCam, eyeCam } = camerasRef.current;
 
+      // ── bee_eye view ──────────────────────────────────────────────
+      // Renders to a fixed-size offscreen render target (independent of
+      // the on-screen GL canvas), then samples through ommatidia onto
+      // the 2-D eye canvas.  Skip the GL-canvas size guard because the
+      // GL canvas is display:none in this mode (clientWidth/Height = 0).
+      if (viewType === 'bee_eye') {
+        eyeCam.position.copy(bee.headWorldPosition);
+        eyeCam.lookAt(eyeCam.position.clone().add(bee.headWorldDirection));
+        // eyeCam renders into a square render target — keep aspect = 1.0
+        if (eyeCam.aspect !== 1) {
+          eyeCam.aspect = 1;
+          eyeCam.updateProjectionMatrix();
+        }
+        const beeEye   = sim.beeEye;
+        const eyeCanvas = eyeCanvasRef.current;
+        if (beeEye && eyeCanvas) {
+          const ew = eyeCanvas.clientWidth;
+          const eh = eyeCanvas.clientHeight;
+          if (ew > 0 && eh > 0 && (eyeCanvas.width !== ew || eyeCanvas.height !== eh)) {
+            eyeCanvas.width  = ew;
+            eyeCanvas.height = eh;
+          }
+          beeEye.setCanvas(eyeCanvas);
+          beeEye.render(renderer, eyeCam, sim.scene);
+        }
+        return;
+      }
+
+      // ── On-screen WebGL views (third_person, first_person) ────────
       // Sync canvas pixel buffer to DOM size
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
@@ -267,7 +296,6 @@ const Viewport = forwardRef(function Viewport(
         ls.w = w; ls.h = h;
         renderer.setSize(w, h, false);
         if (perspCam) { perspCam.aspect = w / h; perspCam.updateProjectionMatrix(); }
-        if (eyeCam)   { eyeCam.aspect   = w / h; eyeCam.updateProjectionMatrix();   }
       }
 
       switch (viewType) {
@@ -283,23 +311,6 @@ const Viewport = forwardRef(function Viewport(
           perspCam.position.copy(bee.headWorldPosition);
           perspCam.lookAt(perspCam.position.clone().add(bee.headWorldDirection));
           renderer.render(sim.scene, perspCam);
-          break;
-        }
-        case 'bee_eye': {
-          eyeCam.position.copy(bee.headWorldPosition);
-          eyeCam.lookAt(eyeCam.position.clone().add(bee.headWorldDirection));
-          const beeEye   = sim.beeEye;
-          const eyeCanvas = eyeCanvasRef.current;
-          if (beeEye && eyeCanvas) {
-            const ew = eyeCanvas.clientWidth;
-            const eh = eyeCanvas.clientHeight;
-            if (ew > 0 && eh > 0 && (eyeCanvas.width !== ew || eyeCanvas.height !== eh)) {
-              eyeCanvas.width  = ew;
-              eyeCanvas.height = eh;
-            }
-            beeEye.setCanvas(eyeCanvas);
-            beeEye.render(renderer, eyeCam, sim.scene);
-          }
           break;
         }
       }
