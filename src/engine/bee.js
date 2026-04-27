@@ -13,23 +13,24 @@ export const FLIGHT = { FREE: 'free', HOVER: 'hover' };
 
 const PARAMS = {
   // Free flight
-  maxSpeed:       8.0,
-  accel:          4.0,
-  braking:        5.0,
-  headYawRate:    2.0,   // rad/s continuous A/D yaw
-  bodyYawFollow:  6.0,   // rad/s — fast catch-up: head leads by ~100 ms then body snaps (bee zig-zag)
-  minHoverSpeed:  0.6,
-  climbRate:      3.0,
+  maxSpeed:          8.0,
+  accel:             4.0,
+  braking:           5.0,
+  headYawRate:       2.0,   // rad/s continuous A/D yaw
+  bodyYawFollow:     6.0,   // rad/s — fast catch-up: head leads by ~100 ms then body snaps (bee zig-zag)
+  minHoverSpeed:     0.6,
+  climbRate:         3.0,   // AGL target change rate in free flight (m/s)
   // Hover (much smaller movements)
-  hoverMoveSpeed: 0.6,
-  hoverYawRate:   0.8,
-  hoverClimbRate: 1.0,
-  // World
-  minHeight:      0.5,
-  maxHeight:      60.0,
+  hoverMoveSpeed:    0.6,
+  hoverYawRate:      0.8,
+  hoverClimbRate:    1.0,   // AGL target change rate in hover (m/s)
+  // Terrain following
+  minHeight:         0.5,   // minimum AGL (metres above ground)
+  maxAGL:           60.0,   // maximum AGL
+  terrainFollowRate: 6.0,   // how quickly the bee tracks terrain changes (higher = snappier)
   // Animation
-  wingFlapRate:   12.0,
-  wingFlapAmp:    0.45,
+  wingFlapRate:     12.0,
+  wingFlapAmp:       0.45,
 };
 
 // Discrete saccade map: keys 1-5 = anti-clockwise (positive headYaw),
@@ -181,6 +182,12 @@ export class BeeController {
     this.hoverVelZ = 0;
     this.wingPhase = 0;
 
+    // Target height above the terrain surface (AGL).
+    // Initialised from the bee's starting absolute Y minus the terrain
+    // directly below so the first frame causes no sudden jump.
+    const startGround = getTerrainHeight(0, 10);
+    this.targetAGL = Math.max(PARAMS.minHeight, 4 - startGround);
+
     this.keys = {};
     this._setupKeys();
   }
@@ -246,10 +253,24 @@ export class BeeController {
       this._updateHover(dt, k, p);
     }
 
-    // Terrain clamp
-    const ty = this.getTerrainHeight(this.position.x, this.position.z);
+    // ── Terrain-following AGL control ────────────────────────────────
+    // Space / Shift adjust the *target height above ground* (AGL), not
+    // absolute altitude.  The bee then smoothly tracks the terrain surface
+    // so it behaves like optic-flow-based terrain following.
+    const climbR = this.flightMode === FLIGHT.FREE ? p.climbRate : p.hoverClimbRate;
+    if (k['Space'])
+      this.targetAGL = Math.min(this.targetAGL + climbR * dt, p.maxAGL);
+    if (k['ShiftLeft'] || k['ShiftRight'] || k['ControlLeft'])
+      this.targetAGL = Math.max(this.targetAGL - climbR * dt, p.minHeight);
+
+    // Smoothly drive position.y toward (terrainHeight + targetAGL).
+    // The exponential approach keeps the ride smooth over gradual slopes;
+    // the hard floor prevents clipping on sharp ridges.
+    const ty      = this.getTerrainHeight(this.position.x, this.position.z);
+    const targetY = ty + this.targetAGL;
+    const alpha   = Math.min(1, p.terrainFollowRate * dt);
+    this.position.y += (targetY - this.position.y) * alpha;
     if (this.position.y < ty + p.minHeight) this.position.y = ty + p.minHeight;
-    if (this.position.y > p.maxHeight)      this.position.y = p.maxHeight;
 
     // Wing animation
     this.wingPhase += p.wingFlapRate * dt * Math.PI * 2;
@@ -290,10 +311,7 @@ export class BeeController {
     const fwd = this.bodyForward;
     this.position.x += fwd.x * this.speed * dt;
     this.position.z += fwd.z * this.speed * dt;
-
-    // Vertical
-    if (k['Space'])                                        this.position.y += p.climbRate * dt;
-    if (k['ShiftLeft'] || k['ShiftRight'] || k['ControlLeft']) this.position.y -= p.climbRate * dt;
+    // Vertical: handled by terrain-following AGL control in update()
   }
 
   _updateHover(dt, k, p) {
@@ -319,9 +337,7 @@ export class BeeController {
     this.position.x += this.hoverVelX * dt;
     this.position.z += this.hoverVelZ * dt;
 
-    // Vertical (slower than free flight)
-    if (k['Space'])                                            this.position.y += p.hoverClimbRate * dt;
-    if (k['ShiftLeft'] || k['ShiftRight'] || k['ControlLeft']) this.position.y -= p.hoverClimbRate * dt;
+    // Vertical: handled by terrain-following AGL control in update()
   }
 
   // Head world position (camera / eye attachment point)
@@ -344,6 +360,7 @@ export class BeeController {
       headYaw:    this.headYaw,
       speed:      this.speed,
       flightMode: this.flightMode,
+      targetAGL:  this.targetAGL,
     };
   }
 
@@ -354,6 +371,7 @@ export class BeeController {
     this.headYaw    = data.headYaw    ?? 0;
     this.speed      = data.speed      ?? 0;
     this.flightMode = data.flightMode ?? FLIGHT.FREE;
+    this.targetAGL  = data.targetAGL  ?? PARAMS.minHeight + 3;
   }
 
   dispose() {

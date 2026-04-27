@@ -1,6 +1,24 @@
 import { useState } from 'react';
 
-const TABS = ['Help', 'Status'];
+const TABS = ['Help', 'Status', 'References'];
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Convert a Three.js bodyYaw (radians) to a 0–359° compass bearing.
+ *  bodyYaw=0 → facing −Z = North.  Positive bodyYaw rotates CCW (west). */
+function bearingDeg(bodyYaw) {
+  // heading increases clockwise from North when bodyYaw increases CCW,
+  // so compass = (−bodyYaw in degrees + 360) mod 360
+  return (((-bodyYaw * 180) / Math.PI) % 360 + 360) % 360;
+}
+
+/** Return a short cardinal/intercardinal label for a compass bearing. */
+function cardinalLabel(deg) {
+  const dirs = ['N','NE','E','SE','S','SW','W','NW'];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+// ── Tabs ──────────────────────────────────────────────────────────────────────
 
 function HelpTab() {
   return (
@@ -92,17 +110,14 @@ function HelpTab() {
         <h3>Save / Load</h3>
         <p>Use the <b style={{color:'#f5a623'}}>💾 Save</b> button to download a JSON file with the bee position and world seed. Use <b style={{color:'#f5a623'}}>📂 Open</b> or drag-and-drop a JSON file onto the app to restore a saved session.</p>
       </div>
-
-      <div className="help-section">
-        <h3>About the Bee Eye</h3>
-        <p>The <b>Bee Eye</b> view simulates the compound eye of a honey bee using an ommatidia model based on Andy Giger's B-EYE algorithm. Each hexagonal facet represents a single ommatidium, sampling the visual scene with a Gaussian acceptance function. Angular resolution varies across the eye from ~1.5° to ~3.7° as in the real eye.</p>
-        <p className="help-note">Reference: Laughlin SB, Horridge GA (1972). Angular sensitivity of the retinula cells of dark-adapted worker bee. Z Vergl Physiol 77:422–425.</p>
-      </div>
     </div>
   );
 }
 
-function StatusTab({ flightMode, speed }) {
+function StatusTab({ flightMode, speed, beePos, beeOrientation, beeAltitude, terrainAltitude }) {
+  const bearing  = typeof beeOrientation === 'number' ? beeOrientation : 0;
+  const cardinal = cardinalLabel(bearing);
+
   return (
     <div className="tab-content">
       <div className="help-section">
@@ -114,11 +129,80 @@ function StatusTab({ flightMode, speed }) {
           </tbody>
         </table>
       </div>
+
+      <div className="help-section">
+        <h3>Position &amp; Orientation</h3>
+        <table className="help-table">
+          <tbody>
+            <tr>
+              <td>X&nbsp;(East)</td>
+              <td>{typeof beePos?.x === 'number' ? beePos.x.toFixed(1) : '—'} m</td>
+            </tr>
+            <tr>
+              <td>Y&nbsp;(North)</td>
+              <td>{typeof beePos?.y === 'number' ? beePos.y.toFixed(1) : '—'} m</td>
+            </tr>
+            <tr>
+              <td>Orientation</td>
+              <td>
+                {typeof beeOrientation === 'number'
+                  ? `${bearing.toFixed(1)}° ${cardinal}`
+                  : '—'}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="help-note">Coordinates use a map-space system: origin at the south-west corner, X increases eastward, Y increases northward. The meadow spans 0–200 m on each axis.</p>
+      </div>
+
+      <div className="help-section">
+        <h3>Altitude</h3>
+        <table className="help-table">
+          <tbody>
+            <tr>
+              <td>Above ground</td>
+              <td>{typeof terrainAltitude === 'number' ? terrainAltitude.toFixed(2) : '—'} m</td>
+            </tr>
+            <tr>
+              <td>Absolute (ASL)</td>
+              <td>{typeof beeAltitude === 'number' ? beeAltitude.toFixed(2) : '—'} m</td>
+            </tr>
+          </tbody>
+        </table>
+        <p className="help-note">Absolute altitude is the bee's world-space Y. Above-ground altitude is the margin above the terrain surface directly below the bee.</p>
+      </div>
     </div>
   );
 }
 
-export default function TabPanel({ flightMode, speed }) {
+function ReferencesTab() {
+  return (
+    <div className="tab-content">
+      <div className="help-section">
+        <h3>About the Bee Eye</h3>
+        <p>The <b>Bee Eye</b> view simulates the compound eye of a honey bee using an ommatidia model based on Andy Giger's B-EYE algorithm. Each hexagonal facet represents a single ommatidium, sampling the visual scene with a Gaussian acceptance function. Angular resolution varies across the eye from ~1.5° to ~3.7° as in the real eye.</p>
+        <p className="help-note">Reference: Laughlin SB, Horridge GA (1972). Angular sensitivity of the retinula cells of dark-adapted worker bee. Z Vergl Physiol 77:422–425.</p>
+      </div>
+
+      <div className="help-section">
+        <h3>B-EYE — Andy Giger</h3>
+        <p>The ommatidia placement and Gaussian acceptance function used in this simulation are based on the B-EYE model developed by Andy Giger. The original interactive tool and detailed documentation are available on his website:</p>
+        <p>
+          <a
+            href="https://andygiger.com/science/beye/beyehome.html"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: '#f5a623', wordBreak: 'break-all' }}
+          >
+            andygiger.com/science/beye/beyehome.html
+          </a>
+        </p>
+      </div>
+    </div>
+  );
+}
+
+export default function TabPanel({ flightMode, speed, beePos, beeOrientation, beeAltitude, terrainAltitude }) {
   const [activeTab, setActiveTab] = useState('Help');
 
   return (
@@ -134,8 +218,18 @@ export default function TabPanel({ flightMode, speed }) {
           </button>
         ))}
       </div>
-      {activeTab === 'Help'   && <HelpTab />}
-      {activeTab === 'Status' && <StatusTab flightMode={flightMode} speed={speed} />}
+      {activeTab === 'Help'       && <HelpTab />}
+      {activeTab === 'Status'     && (
+        <StatusTab
+          flightMode={flightMode}
+          speed={speed}
+          beePos={beePos}
+          beeOrientation={beeOrientation}
+          beeAltitude={beeAltitude}
+          terrainAltitude={terrainAltitude}
+        />
+      )}
+      {activeTab === 'References' && <ReferencesTab />}
     </div>
   );
 }

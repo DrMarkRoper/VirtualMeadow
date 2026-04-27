@@ -11,6 +11,9 @@ const TERRAIN_SEGS  = 120;
 const TERRAIN_SCALE = 0.025;
 const TERRAIN_AMP   = 10.0;
 const NUM_FLOWERS   = 280;
+// Flower size multiplier — increase to make flowers larger in the 3-D scene
+// and on the map view (flowerData.scale is stored pre-multiplied).
+export const FLOWER_SCALE = 5.0;
 const FLOWER_TYPES  = [
   { petalColor: 0xff4488, centreColor: 0xffee00, scale: 1.0 },
   { petalColor: 0xffffff, centreColor: 0xffcc00, scale: 0.85 },
@@ -94,7 +97,7 @@ function buildFlowers(getTerrainHeight, seed) {
       wz = (r2 - 0.5) * hs * 2;
       const wy = getTerrainHeight(wx, wz);
 
-      const s = ft.scale * (0.8 + r3 * 0.5);
+      const s = ft.scale * (0.8 + r3 * 0.5) * FLOWER_SCALE;
       flowerData.push({ x: wx, z: wz, petalColor: ft.petalColor, centreColor: ft.centreColor, scale: s });
       const flower = new THREE.Group();
       flower.position.set(wx, wy, wz);
