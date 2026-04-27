@@ -183,6 +183,20 @@ const Viewport = forwardRef(function Viewport(
   const mapSizeRef   = useRef({ w: 0, h: 0 });
   const [ready, setReady] = useState(false);
 
+  // Bee-eye display options (per-viewport so two viewports can hold
+  // independent settings if both ever show bee_eye)
+  const [brightness, setBrightness]   = useState(1.6);
+  const [showBino,    setShowBino]    = useState(true);
+
+  // Push display options into the BeeEyeRenderer whenever they change
+  useEffect(() => {
+    const bee = simRef?.current?.beeEye;
+    if (bee) {
+      bee.setBrightness(brightness);
+      bee.setShowBinocular(showBino);
+    }
+  }, [brightness, showBino, simRef]);
+
   // ── Init WebGL renderer & cameras (3-D views only) ────────────────
   useEffect(() => {
     const canvas = glCanvasRef.current;
@@ -199,15 +213,12 @@ const Viewport = forwardRef(function Viewport(
     renderer.outputColorSpace     = THREE.SRGBColorSpace;
     rendererRef.current           = renderer;
 
-    // Perspective camera shared by 3rd-person and 1st-person views
+    // Perspective camera shared by 3rd-person and 1st-person views.
+    // (The bee-eye view manages its own 6 face cameras inside BeeEyeRenderer.)
     const perspCam = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     perspCam.name  = 'perspCam';
 
-    // Bee-eye camera
-    const eyeCam = new THREE.PerspectiveCamera(110, 1, 0.1, 800);
-    eyeCam.name  = 'eyeCam';
-
-    camerasRef.current = { perspCam, eyeCam };
+    camerasRef.current = { perspCam };
     setReady(true);
 
     return () => { renderer.dispose(); };
@@ -256,8 +267,36 @@ const Viewport = forwardRef(function Viewport(
       if (!renderer) return;
 
       const canvas = glCanvasRef.current;
-      const { perspCam, eyeCam } = camerasRef.current;
+      const { perspCam } = camerasRef.current;
 
+      // ── bee_eye view ──────────────────────────────────────────────
+      // Renders the scene into a cubemap centred on the bee head, then
+      // samples each ommatidium by 3-D direction.  No on-screen WebGL
+      // camera is needed here, so skip the GL-canvas size guard (which
+      // would otherwise early-return because that canvas is display:none).
+      if (viewType === 'bee_eye') {
+        const beeEye   = sim.beeEye;
+        const eyeCanvas = eyeCanvasRef.current;
+        if (beeEye && eyeCanvas) {
+          const ew = eyeCanvas.clientWidth;
+          const eh = eyeCanvas.clientHeight;
+          if (ew > 0 && eh > 0 && (eyeCanvas.width !== ew || eyeCanvas.height !== eh)) {
+            eyeCanvas.width  = ew;
+            eyeCanvas.height = eh;
+          }
+          beeEye.setCanvas(eyeCanvas);
+          beeEye.render(
+            renderer,
+            sim.scene,
+            bee.headWorldPosition,
+            bee.bodyYaw + bee.headYaw,
+            bee.mesh,
+          );
+        }
+        return;
+      }
+
+      // ── On-screen WebGL views (third_person, first_person) ────────
       // Sync canvas pixel buffer to DOM size
       const w = canvas.clientWidth;
       const h = canvas.clientHeight;
@@ -267,7 +306,6 @@ const Viewport = forwardRef(function Viewport(
         ls.w = w; ls.h = h;
         renderer.setSize(w, h, false);
         if (perspCam) { perspCam.aspect = w / h; perspCam.updateProjectionMatrix(); }
-        if (eyeCam)   { eyeCam.aspect   = w / h; eyeCam.updateProjectionMatrix();   }
       }
 
       switch (viewType) {
@@ -283,23 +321,6 @@ const Viewport = forwardRef(function Viewport(
           perspCam.position.copy(bee.headWorldPosition);
           perspCam.lookAt(perspCam.position.clone().add(bee.headWorldDirection));
           renderer.render(sim.scene, perspCam);
-          break;
-        }
-        case 'bee_eye': {
-          eyeCam.position.copy(bee.headWorldPosition);
-          eyeCam.lookAt(eyeCam.position.clone().add(bee.headWorldDirection));
-          const beeEye   = sim.beeEye;
-          const eyeCanvas = eyeCanvasRef.current;
-          if (beeEye && eyeCanvas) {
-            const ew = eyeCanvas.clientWidth;
-            const eh = eyeCanvas.clientHeight;
-            if (ew > 0 && eh > 0 && (eyeCanvas.width !== ew || eyeCanvas.height !== eh)) {
-              eyeCanvas.width  = ew;
-              eyeCanvas.height = eh;
-            }
-            beeEye.setCanvas(eyeCanvas);
-            beeEye.render(renderer, eyeCam, sim.scene);
-          }
           break;
         }
       }
@@ -340,7 +361,7 @@ const Viewport = forwardRef(function Viewport(
         />
       </div>
 
-      {/* View selector thumbnails */}
+      {/* View selector thumbnails (+ bee-eye controls on the right) */}
       <div className="view-selector">
         {VIEW_TYPES.map(vt => (
           <div
@@ -353,6 +374,30 @@ const Viewport = forwardRef(function Viewport(
             <span className="vt-label">{vt.label}</span>
           </div>
         ))}
+        {isBeeEye && (
+          <div className="bee-eye-controls">
+            <label className="bee-eye-bino" title="Outline ommatidia in the binocular overlap zone">
+              <input
+                type="checkbox"
+                checked={showBino}
+                onChange={(e) => setShowBino(e.target.checked)}
+              />
+              <span>bino</span>
+            </label>
+            <label className="bee-eye-brightness" title="Brightness multiplier for bee-eye view">
+              <span className="bel-icon">☀</span>
+              <input
+                type="range"
+                min="0.2"
+                max="4.0"
+                step="0.05"
+                value={brightness}
+                onChange={(e) => setBrightness(parseFloat(e.target.value))}
+              />
+              <span className="bel-val">{brightness.toFixed(2)}×</span>
+            </label>
+          </div>
+        )}
       </div>
     </div>
   );
