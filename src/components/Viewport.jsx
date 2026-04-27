@@ -183,6 +183,20 @@ const Viewport = forwardRef(function Viewport(
   const mapSizeRef   = useRef({ w: 0, h: 0 });
   const [ready, setReady] = useState(false);
 
+  // Bee-eye display options (per-viewport so two viewports can hold
+  // independent settings if both ever show bee_eye)
+  const [brightness, setBrightness]   = useState(1.6);
+  const [showBino,    setShowBino]    = useState(true);
+
+  // Push display options into the BeeEyeRenderer whenever they change
+  useEffect(() => {
+    const bee = simRef?.current?.beeEye;
+    if (bee) {
+      bee.setBrightness(brightness);
+      bee.setShowBinocular(showBino);
+    }
+  }, [brightness, showBino, simRef]);
+
   // ── Init WebGL renderer & cameras (3-D views only) ────────────────
   useEffect(() => {
     const canvas = glCanvasRef.current;
@@ -347,7 +361,7 @@ const Viewport = forwardRef(function Viewport(
         />
       </div>
 
-      {/* View selector thumbnails */}
+      {/* View selector thumbnails (+ bee-eye controls on the right) */}
       <div className="view-selector">
         {VIEW_TYPES.map(vt => (
           <div
@@ -360,6 +374,30 @@ const Viewport = forwardRef(function Viewport(
             <span className="vt-label">{vt.label}</span>
           </div>
         ))}
+        {isBeeEye && (
+          <div className="bee-eye-controls">
+            <label className="bee-eye-bino" title="Outline ommatidia in the binocular overlap zone">
+              <input
+                type="checkbox"
+                checked={showBino}
+                onChange={(e) => setShowBino(e.target.checked)}
+              />
+              <span>bino</span>
+            </label>
+            <label className="bee-eye-brightness" title="Brightness multiplier for bee-eye view">
+              <span className="bel-icon">☀</span>
+              <input
+                type="range"
+                min="0.2"
+                max="4.0"
+                step="0.05"
+                value={brightness}
+                onChange={(e) => setBrightness(parseFloat(e.target.value))}
+              />
+              <span className="bel-val">{brightness.toFixed(2)}×</span>
+            </label>
+          </div>
+        )}
       </div>
     </div>
   );

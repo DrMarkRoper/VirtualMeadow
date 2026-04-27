@@ -259,6 +259,42 @@ html, body, #root {
 .view-thumb .vt-label { font-size: 7px; color: var(--text-dim); letter-spacing: 0.3px; text-transform: uppercase; }
 .view-thumb.active .vt-label { color: var(--accent); }
 
+/* ── Bee-eye view controls (right of selector row) ───────────────── */
+.bee-eye-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-left: 8px;
+  padding-left: 10px;
+  border-left: 1px solid rgba(255,255,255,0.08);
+}
+.bee-eye-bino {
+  display: flex; align-items: center; gap: 4px;
+  font-size: 10px; color: var(--text-dim);
+  cursor: pointer; user-select: none;
+}
+.bee-eye-bino input[type="checkbox"] {
+  width: 12px; height: 12px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.bee-eye-brightness {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; color: var(--text-dim);
+  cursor: pointer; user-select: none;
+}
+.bee-eye-brightness .bel-icon { font-size: 12px; opacity: 0.8; }
+.bee-eye-brightness input[type="range"] {
+  width: 90px;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+.bee-eye-brightness .bel-val {
+  font-variant-numeric: tabular-nums;
+  min-width: 36px; text-align: right;
+  color: rgba(255,255,255,0.65);
+}
+
 /* Viewport label (top-left) */
 .viewport-label {
   position: absolute;
