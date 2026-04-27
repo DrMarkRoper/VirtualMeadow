@@ -34,8 +34,16 @@ export default function App() {
   const viewport2Ref = useRef(null);
 
   // ── Status display ────────────────────────────────────────────────
-  const [flightMode, setFlightMode] = useState('Free Flight');
-  const [speed,      setSpeed]      = useState(0);
+  const [flightMode,      setFlightMode]      = useState('Free Flight');
+  const [speed,           setSpeed]           = useState(0);
+  // Map-space position (origin SW corner, X east, Y north) in metres
+  const [beePos,          setBeePos]          = useState({ x: 100, y: 100 });
+  // Compass bearing 0–360° (0 = N)
+  const [beeOrientation,  setBeeOrientation]  = useState(0);
+  // Absolute (ASL) altitude = bee.position.y
+  const [beeAltitude,     setBeeAltitude]     = useState(0);
+  // Altitude above terrain directly below the bee
+  const [terrainAltitude, setTerrainAltitude] = useState(0);
 
   // ── Initialise simulation ─────────────────────────────────────────
   useEffect(() => {
@@ -82,8 +90,25 @@ export default function App() {
       statusThrottle++;
       if (statusThrottle >= 10) {
         statusThrottle = 0;
-        setFlightMode(sim.bee.flightModeLabel);
-        setSpeed(sim.bee.speed);
+        const b = sim.bee;
+        setFlightMode(b.flightModeLabel);
+        setSpeed(b.speed);
+
+        // Map-space coords: origin SW, X east, Y north (0–200 m)
+        setBeePos({
+          x:  b.position.x + 100,
+          y: -b.position.z + 100,
+        });
+
+        // Compass bearing: bodyYaw=0 → N; positive bodyYaw → CCW (W)
+        const bearing = (((-b.bodyYaw * 180) / Math.PI) % 360 + 360) % 360;
+        setBeeOrientation(bearing);
+
+        // Altitude
+        const absAlt     = b.position.y;
+        const groundElev = sim.getTerrainHeight(b.position.x, b.position.z);
+        setBeeAltitude(absAlt);
+        setTerrainAltitude(absAlt - groundElev);
       }
 
       // Render each viewport
@@ -248,7 +273,14 @@ export default function App() {
           </div>
         ) : (
           <div className="tab-area" style={{ flex: vpCollapsed ? '1 1 0' : `${100 - viewportFlex} 1 0` }}>
-            <TabPanel flightMode={flightMode} speed={speed} />
+            <TabPanel
+              flightMode={flightMode}
+              speed={speed}
+              beePos={beePos}
+              beeOrientation={beeOrientation}
+              beeAltitude={beeAltitude}
+              terrainAltitude={terrainAltitude}
+            />
           </div>
         )}
 
