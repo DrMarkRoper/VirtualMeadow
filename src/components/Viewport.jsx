@@ -199,15 +199,12 @@ const Viewport = forwardRef(function Viewport(
     renderer.outputColorSpace     = THREE.SRGBColorSpace;
     rendererRef.current           = renderer;
 
-    // Perspective camera shared by 3rd-person and 1st-person views
+    // Perspective camera shared by 3rd-person and 1st-person views.
+    // (The bee-eye view manages its own 6 face cameras inside BeeEyeRenderer.)
     const perspCam = new THREE.PerspectiveCamera(75, 1, 0.1, 1000);
     perspCam.name  = 'perspCam';
 
-    // Bee-eye camera
-    const eyeCam = new THREE.PerspectiveCamera(110, 1, 0.1, 800);
-    eyeCam.name  = 'eyeCam';
-
-    camerasRef.current = { perspCam, eyeCam };
+    camerasRef.current = { perspCam };
     setReady(true);
 
     return () => { renderer.dispose(); };
@@ -256,21 +253,14 @@ const Viewport = forwardRef(function Viewport(
       if (!renderer) return;
 
       const canvas = glCanvasRef.current;
-      const { perspCam, eyeCam } = camerasRef.current;
+      const { perspCam } = camerasRef.current;
 
       // ── bee_eye view ──────────────────────────────────────────────
-      // Renders to a fixed-size offscreen render target (independent of
-      // the on-screen GL canvas), then samples through ommatidia onto
-      // the 2-D eye canvas.  Skip the GL-canvas size guard because the
-      // GL canvas is display:none in this mode (clientWidth/Height = 0).
+      // Renders the scene into a cubemap centred on the bee head, then
+      // samples each ommatidium by 3-D direction.  No on-screen WebGL
+      // camera is needed here, so skip the GL-canvas size guard (which
+      // would otherwise early-return because that canvas is display:none).
       if (viewType === 'bee_eye') {
-        eyeCam.position.copy(bee.headWorldPosition);
-        eyeCam.lookAt(eyeCam.position.clone().add(bee.headWorldDirection));
-        // eyeCam renders into a square render target — keep aspect = 1.0
-        if (eyeCam.aspect !== 1) {
-          eyeCam.aspect = 1;
-          eyeCam.updateProjectionMatrix();
-        }
         const beeEye   = sim.beeEye;
         const eyeCanvas = eyeCanvasRef.current;
         if (beeEye && eyeCanvas) {
@@ -281,7 +271,13 @@ const Viewport = forwardRef(function Viewport(
             eyeCanvas.height = eh;
           }
           beeEye.setCanvas(eyeCanvas);
-          beeEye.render(renderer, eyeCam, sim.scene);
+          beeEye.render(
+            renderer,
+            sim.scene,
+            bee.headWorldPosition,
+            bee.bodyYaw + bee.headYaw,
+            bee.mesh,
+          );
         }
         return;
       }
