@@ -2,7 +2,7 @@
 
 A browser-based 3D flight simulator that lets you experience a flower meadow from the perspective of a honey bee — compound eyes and all.
 
-Built with React, Vite, and Three.js.
+Try the live demo: [Virtual Meadow](https://DrMarkRoper.github.io/VirtualMeadow)
 
 ---
 
@@ -10,7 +10,7 @@ Built with React, Vite, and Three.js.
 
 VirtualMeadow drops you into a procedurally generated wildflower meadow and lets you fly through it as a bee. It has two distinct flight modes — fast free flight with saccadic head-then-body turning (matching how bees actually navigate), and slow hovering for close inspection of flowers.
 
-The bee automatically follows the terrain contour at a constant height above the ground, mimicking optic-flow-based terrain following used by real bees in flight. Space and Shift control the target height above ground (AGL); if the terrain rises, the bee rises with it.
+The bee automatically follows the terrain contour at a constant height above the ground, mimicking optic-flow-based terrain following used by real bees in flight. Space and Shift control the target height above ground; if the terrain rises, the bee rises with it.
 
 A second viewport renders the world through a simulated compound eye (the B-EYE model), showing the blurred, faceted vision of both the left and right compound eyes simultaneously. The simulation is seeded, so every world is reproducible, and the bee state can be saved and restored as JSON.
 
@@ -20,12 +20,12 @@ A second viewport renders the world through a simulated compound eye (the B-EYE 
 
 - **Two flight modes** — free flight and hover, switchable on the fly
 - **Saccadic yaw** — head snaps instantly to a new angle; body follows rapidly behind (~100 ms delay), replicating the zig-zag flight pattern of real bees
-- **Terrain-following flight** — the bee maintains a constant height above the ground surface; Space/Shift adjust that target AGL, not absolute altitude
-- **Dual compound eye view** — a B-EYE renderer produces left and right eye mosaics side-by-side, each a 60°-tilted field sampled through ~4 900 ommatidia with Gaussian acceptance kernels; overlapping binocular ommatidia can be highlighted in gold
+- **Terrain-following flight** — the bee maintains a constant height above the ground surface.
+- **Dual compound eye view** — a B-EYE renderer produces left and right eye mosaics side-by-side, each a 60°-tilted field sampled through ~4,900 ommatidia with Gaussian acceptance kernels; overlapping binocular ommatidia can be highlighted in gold
 - **Four viewports** — 3rd person, 1st person, top-down map (with compass), and compound eye; each panel can show any view independently
-- **Procedural world** — fractal noise terrain, 280 flowers across 6 species (scaled to 5× real-flower size), 18 cloud groups, all seeded for reproducibility
+- **Procedural world** — fractal noise terrain, 280 flowers across 6 species, 18 cloud groups, all seeded for reproducibility
 - **Live status panel** — real-time display of map-space position (X east / Y north, SW-corner origin), compass bearing with cardinal label, above-ground and absolute altitude
-- **Save / Load** — export and restore the bee's position, heading, speed, and target AGL as a JSON file
+- **Save / Load** — export and restore the bee's position, heading, speed as a JSON file
 
 ---
 
@@ -34,7 +34,7 @@ A second viewport renders the world through a simulated compound eye (the B-EYE 
 You will need [Node.js](https://nodejs.org/) (v18 or later).
 
 ```bash
-git clone https://github.com/your-username/VirtualMeadow.git
+git clone https://github.com/DrMarkRoper/VirtualMeadow.git
 cd VirtualMeadow
 npm install
 npm run dev
@@ -120,8 +120,8 @@ Each of the two panels has four view buttons along the bottom:
 |------|------|-------------|
 | 🎥 3rd | Third person | Camera follows behind and above the bee |
 | 👁 1st | First person | Camera at the bee's head, facing the same direction |
-| 🗺 Map | God / Map | Top-down view with terrain elevation, flowers, and compass |
-| 🐝 Eye | Bee Eye | Live dual compound-eye ommatidia render (left eye left, right eye right) |
+| 🗺 Map | God / Map | Top-down view with terrain, flowers, and compass |
+| 🐝 Eye | Bee Eye | Live dual compound-eye ommatidia render |
 
 The Bee Eye panel also has two controls:
 
@@ -138,7 +138,7 @@ The panel below the viewports has three tabs:
 |-----|----------|
 | **Help** | Full control reference and layout guide |
 | **Status** | Live bee telemetry — flight mode, speed, map position, compass heading, above-ground and absolute altitude |
-| **References** | B-EYE background, Laughlin & Horridge (1972) citation, link to Andy Giger's original B-EYE tool |
+| **About** | Project Details and B-EYE background, Laughlin & Horridge (1972) citation, link to Andy Giger's original B-EYE tool |
 
 ---
 
@@ -197,7 +197,7 @@ The panel below the viewports has three tabs:
 
 ## Compound eye — how it works
 
-The B-EYE renderer is a JavaScript port of Andy Giger's algorithm, extended for a true 3-D environment with dual compound eyes. See the original tool and documentation at **[andygiger.com/science/beye/beyehome.html](https://andygiger.com/science/beye/beyehome.html)**.
+The B-EYE renderer is a JavaScript port of Dr Andy Giger's algorithm, extended for a true 3-D environment with dual compound eyes. See the original tool and documentation at **[andygiger.com/science/beye/beyehome.html](https://andygiger.com/science/beye/beyehome.html)**.
 
 ### Scene capture
 
@@ -250,5 +250,8 @@ Each eye's ommatidia are mapped into a 60×160 hex grid (`_buildWabe`) and drawn
 ---
 
 ## License
+If used in publications, or other works, please cite:
+[1] Giger A D, B-Eye, https://andygiger.com/science/beye/beyehome.html
+[2] Roper M, VirtualMeadow, https://github.com/DrMarkRoper/VirtualMeadow
 
 MIT
