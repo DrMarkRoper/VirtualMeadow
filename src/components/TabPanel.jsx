@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-const TABS = ['Help', 'Status', 'References'];
+const TABS = ['Help', 'Status', 'About'];
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -23,65 +23,81 @@ function cardinalLabel(deg) {
 function HelpTab() {
   return (
     <div className="tab-content">
+      {/* Flight Modes intro — full width */}
       <div className="help-section">
         <h3>Flight Modes</h3>
         <p>The bee has two flight modes. Press <b style={{color:'#f5a623'}}>H</b> or <b style={{color:'#f5a623'}}>Tab</b> to toggle (you must slow down first to enter hover).</p>
         <p className="help-note">Free Flight is fast, forward-directed movement. Hover is helicopter-like movement in any direction at lower speed.</p>
       </div>
 
-      <div className="help-section">
-        <h3>Free Flight Controls</h3>
-        <table className="help-table">
-          <tbody>
-            <tr><td>W / ↑</td><td>Accelerate forward</td></tr>
-            <tr><td>S / ↓</td><td>Brake / slow down</td></tr>
-            <tr><td>A / ←</td><td>Continuous head yaw left (body follows)</td></tr>
-            <tr><td>D / →</td><td>Continuous head yaw right (body follows)</td></tr>
-            <tr><td>Space</td><td>Ascend / climb</td></tr>
-            <tr><td>Shift / Ctrl</td><td>Descend</td></tr>
-            <tr><td>H / Tab</td><td>Switch to Hover mode (slow down first)</td></tr>
-          </tbody>
-        </table>
-        <p className="help-note">In free flight the bee's head yaws first (saccade), then the body gradually catches up over ~0.3–1.5 s. Direction of travel follows the body heading.</p>
+      {/* Two columns: Free Flight | Hover */}
+      <div className="help-two-col">
+        <div className="help-section">
+          <h3>Free Flight Controls</h3>
+          <table className="help-table">
+            <tbody>
+              <tr><td>W / ↑</td><td>Accelerate forward</td></tr>
+              <tr><td>S / ↓</td><td>Brake / slow down</td></tr>
+              <tr><td>A / ←</td><td>Head yaw left (body follows)</td></tr>
+              <tr><td>D / →</td><td>Head yaw right (body follows)</td></tr>
+              <tr><td>Space</td><td>Ascend / climb</td></tr>
+              <tr><td>Shift / Ctrl</td><td>Descend</td></tr>
+              <tr><td>H / Tab</td><td>Switch to Hover mode</td></tr>
+            </tbody>
+          </table>
+          <p className="help-note">Head yaws first, body gradually catches up over ~0.3–1.5 s. Direction of travel follows the body heading.</p>
+        </div>
+
+        <div className="help-section">
+          <h3>Hover / Scanning Controls</h3>
+          <table className="help-table">
+            <tbody>
+              <tr><td>W / ↑</td><td>Move forward</td></tr>
+              <tr><td>S / ↓</td><td>Move backward</td></tr>
+              <tr><td>A / ←</td><td>Strafe left</td></tr>
+              <tr><td>D / →</td><td>Strafe right</td></tr>
+              <tr><td>Q</td><td>Yaw left</td></tr>
+              <tr><td>E</td><td>Yaw right</td></tr>
+              <tr><td>Space</td><td>Ascend</td></tr>
+              <tr><td>Shift / Ctrl</td><td>Descend</td></tr>
+              <tr><td>H / Tab</td><td>Switch to Free Flight</td></tr>
+            </tbody>
+          </table>
+          <p className="help-note">Helicopter-style — strafe in any direction at low speed. Yaw via Q/E or saccade keys (1–0).</p>
+        </div>
       </div>
 
-      <div className="help-section">
-        <h3>Saccade Keys (both modes)</h3>
-        <table className="help-table">
-          <tbody>
-            <tr><td>1</td><td>Snap head/body 75° anti-clockwise (left)</td></tr>
-            <tr><td>2</td><td>30° left</td></tr>
-            <tr><td>3</td><td>15° left</td></tr>
-            <tr><td>4</td><td>5° left</td></tr>
-            <tr><td>5</td><td>2° left</td></tr>
-            <tr><td>6</td><td>2° right</td></tr>
-            <tr><td>7</td><td>5° right</td></tr>
-            <tr><td>8</td><td>15° right</td></tr>
-            <tr><td>9</td><td>30° right</td></tr>
-            <tr><td>0</td><td>75° right (clockwise)</td></tr>
-          </tbody>
-        </table>
-        <p className="help-note">Saccades are one-shot angular steps: in Free Flight the head snaps instantly and the body follows; in Hover the whole bee rotates immediately.</p>
+      {/* Two columns: Saccades 1–5 (left) | 6–0 (right) */}
+      <div className="help-two-col">
+        <div className="help-section">
+          <h3>Saccades 1–5 (Left)</h3>
+          <table className="help-table">
+            <tbody>
+              <tr><td>1</td><td>75° anti-clockwise (left)</td></tr>
+              <tr><td>2</td><td>30° left</td></tr>
+              <tr><td>3</td><td>15° left</td></tr>
+              <tr><td>4</td><td>5° left</td></tr>
+              <tr><td>5</td><td>2° left</td></tr>
+            </tbody>
+          </table>
+          <p className="help-note">One-shot snaps. Free Flight: head snaps, body follows. Hover: whole bee rotates.</p>
+        </div>
+
+        <div className="help-section">
+          <h3>Saccades 6–0 (Right)</h3>
+          <table className="help-table">
+            <tbody>
+              <tr><td>6</td><td>2° right</td></tr>
+              <tr><td>7</td><td>5° right</td></tr>
+              <tr><td>8</td><td>15° right</td></tr>
+              <tr><td>9</td><td>30° right</td></tr>
+              <tr><td>0</td><td>75° clockwise (right)</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
 
-      <div className="help-section">
-        <h3>Hover / Scanning Controls</h3>
-        <table className="help-table">
-          <tbody>
-            <tr><td>W / ↑</td><td>Move forward</td></tr>
-            <tr><td>S / ↓</td><td>Move backward</td></tr>
-            <tr><td>A / ←</td><td>Strafe left</td></tr>
-            <tr><td>D / →</td><td>Strafe right</td></tr>
-            <tr><td>Q</td><td>Yaw left</td></tr>
-            <tr><td>E</td><td>Yaw right</td></tr>
-            <tr><td>Space</td><td>Ascend</td></tr>
-            <tr><td>Shift / Ctrl</td><td>Descend</td></tr>
-            <tr><td>H / Tab</td><td>Switch back to Free Flight</td></tr>
-          </tbody>
-        </table>
-        <p className="help-note">In hover mode the bee moves like a helicopter — strafe in any direction at low speed. Yaw via Q/E or saccade keys (1–0).</p>
-      </div>
-
+      {/* Full-width sections */}
       <div className="help-section">
         <h3>Viewport Views</h3>
         <table className="help-table">
@@ -122,7 +138,7 @@ function StatusTab({ flightMode, speed, beePos, beeOrientation, beeAltitude, ter
     <div className="tab-content">
       <div className="help-section">
         <h3>Bee Status</h3>
-        <table className="help-table">
+        <table className="help-table status-table">
           <tbody>
             <tr><td>Flight Mode</td><td>{flightMode}</td></tr>
             <tr><td>Speed</td><td>{typeof speed === 'number' ? speed.toFixed(2) : '0.00'} m/s</td></tr>
@@ -132,7 +148,7 @@ function StatusTab({ flightMode, speed, beePos, beeOrientation, beeAltitude, ter
 
       <div className="help-section">
         <h3>Position &amp; Orientation</h3>
-        <table className="help-table">
+        <table className="help-table status-table">
           <tbody>
             <tr>
               <td>X&nbsp;(East)</td>
@@ -157,7 +173,7 @@ function StatusTab({ flightMode, speed, beePos, beeOrientation, beeAltitude, ter
 
       <div className="help-section">
         <h3>Altitude</h3>
-        <table className="help-table">
+        <table className="help-table status-table">
           <tbody>
             <tr>
               <td>Above ground</td>
@@ -175,9 +191,14 @@ function StatusTab({ flightMode, speed, beePos, beeOrientation, beeAltitude, ter
   );
 }
 
-function ReferencesTab() {
+function AboutTab() {
   return (
     <div className="tab-content">
+      <div className="help-section">
+        <h3>About the project</h3>
+        <p>Hi, I am Mark Roper. In the early 2010's I did a PhD in honeybee cognition. Specifically how bees, at a neurobiological level, identify and discriminate different flower species. Part of that investigation was in understanding how bees process visual information, and how their flight dynamics underpin their remarkable abilities. During my research Dr Andy Giger kindly provided me with a copy of his B-Eye programme (see below) which envisages what a bee might see when looking at images. Here, I have ported that to a 3d virtual meadow where the bee can fly past or hover next to different flowers. This is not a scientific representation, but I hope it provides a fun and insightful experience into what it is like as a bee; to have a very wide field of view, yet limited visual acuity.</p>
+      </div>
+
       <div className="help-section">
         <h3>About the Bee Eye</h3>
         <p>The <b>Bee Eye</b> view simulates the compound eye of a honey bee using an ommatidia model based on Andy Giger's B-EYE algorithm. Each hexagonal facet represents a single ommatidium, sampling the visual scene with a Gaussian acceptance function. Angular resolution varies across the eye from ~1.5° to ~3.7° as in the real eye.</p>
@@ -229,7 +250,7 @@ export default function TabPanel({ flightMode, speed, beePos, beeOrientation, be
           terrainAltitude={terrainAltitude}
         />
       )}
-      {activeTab === 'References' && <ReferencesTab />}
+      {activeTab === 'About'      && <AboutTab />}
     </div>
   );
 }
