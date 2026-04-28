@@ -4,6 +4,7 @@ A browser-based 3D flight simulator that lets you experience a flower meadow fro
 
 Try the live demo: <a href="https://DrMarkRoper.github.io/VirtualMeadow" target="_blank" rel="noopener noreferrer">Virtual Meadow</a>
 
+<img width="1430" height="678" alt="VirtualMeadow(2)_v_0_1" src="https://github.com/user-attachments/assets/2b8a27a1-8538-439f-99e8-47407205ebfc" />
 
 ---
 
