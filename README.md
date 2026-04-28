@@ -251,8 +251,8 @@ Each eye's ommatidia are mapped into a 60×160 hex grid (`_buildWabe`) and drawn
 
 ## License
 If used in publications, or other works, please cite:
-[1] Giger A D, B-Eye, https://andygiger.com/science/beye/beyehome.html
-[2] Roper M, VirtualMeadow, https://github.com/DrMarkRoper/VirtualMeadow
+- [1] Giger A D, B-Eye, https://andygiger.com/science/beye/beyehome.html
+- [2] Roper M, VirtualMeadow, https://github.com/DrMarkRoper/VirtualMeadow
 
 MIT
 
