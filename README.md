@@ -2,7 +2,8 @@
 
 A browser-based 3D flight simulator that lets you experience a flower meadow from the perspective of a honey bee — compound eyes and all.
 
-Try the live demo: [Virtual Meadow](https://DrMarkRoper.github.io/VirtualMeadow)
+Try the live demo: <a href="https://DrMarkRoper.github.io/VirtualMeadow" target="_blank" rel="noopener noreferrer">Virtual Meadow</a>
+
 
 ---
 
