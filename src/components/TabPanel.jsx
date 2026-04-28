@@ -196,7 +196,17 @@ function AboutTab() {
     <div className="tab-content">
       <div className="help-section">
         <h3>About the project</h3>
-        <p>Hi, I am Mark Roper. In the early 2010's I did a PhD in honeybee cognition. Specifically how bees, at a neurobiological level, identify and discriminate different flower species. Part of that investigation was in understanding how bees process visual information, and how their flight dynamics underpin their remarkable abilities. During my research Dr Andy Giger kindly provided me with a copy of his B-Eye programme (see below) which envisages what a bee might see when looking at images. Here, I have ported that to a 3d virtual meadow where the bee can fly past or hover next to different flowers. This is not a scientific representation, but I hope it provides a fun and insightful experience into what it is like as a bee; to have a very wide field of view, yet limited visual acuity.</p>
+        <p>Hi, I am Mark Roper. In the early 2010's I did a PhD in honeybee cognition. Specifically how bees, at a neurobiological level, identify and discriminate different flower species. Part of that investigation was in understanding how bees process visual information, and how their flight dynamics underpin their remarkable abilities. During my research Dr Andy Giger kindly provided me with a copy of his B-Eye programme (see below) which envisages what a bee might see when looking at images. Here, I have ported that to a 3d virtual meadow where the bee can fly past, or hover next to, different flowers. This is not a correct scientific representation, but I hope it provides a fun and insightful experience into what it is like as a bee; having a very wide field of view, yet limited visual acuity.</p>
+        <p>This application is fully open source, the code can be found at:&nbsp;
+          <a
+            href="https://github.com/DrMarkRoper/VirtualMeadow"
+            target="_blank"
+            rel="noreferrer"
+            style={{ color: '#f5a623', wordBreak: 'break-all' }}
+          >
+            https://github.com/DrMarkRoper/VirtualMeadow
+          </a>
+        </p>
       </div>
 
       <div className="help-section">
