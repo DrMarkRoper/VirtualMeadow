@@ -51,7 +51,7 @@ export default function Toolbar({ onSave, onLoad, flightMode, speed }) {
           Speed: <b>{typeof speed === 'number' ? speed.toFixed(1) : '0.0'} m/s</b>
         </span>
         <span className={`mode-badge${flightMode === 'Hover' ? ' hover' : ''}`}>
-          {flightMode || 'Free Flight'}
+          {flightMode || 'Fast'}
         </span>
       </div>
     </div>

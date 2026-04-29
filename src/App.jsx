@@ -1,64 +1,96 @@
 /**
- * App.jsx – VirtualMeadow v.0.1
- * Top-level component: initialises simulation, drives animation loop,
- * manages vertical split between viewports and tab panel.
+ * App.jsx – VirtualMeadow v.0.2
  */
 import { useEffect, useRef, useState, useCallback } from 'react';
 import Toolbar from './components/Toolbar.jsx';
 import ViewportContainer from './components/ViewportContainer.jsx';
 import TabPanel from './components/TabPanel.jsx';
+import TouchControls from './components/TouchControls.jsx';
 import { buildScene } from './engine/scene.js';
-import { BeeController } from './engine/bee.js';
+import { BeeController, FLIGHT } from './engine/bee.js';
 import { BeeEyeRenderer } from './engine/beeEye.js';
+import { KeyboardController } from './engine/keyboardController.js';
+import { TouchController } from './engine/touchController.js';
+import { inputState, clearInputState } from './engine/inputState.js';
 import './App.css';
 
-export default function App() {
-  // ── Layout state ──────────────────────────────────────────────────
-  const [viewportFlex, setViewportFlex] = useState(65);
-  const [isDraggingV, setIsDraggingV]  = useState(false);
-  const [vpCollapsed,  setVpCollapsed]  = useState(false); // viewports collapsed (tabs full)
-  const [tabCollapsed, setTabCollapsed] = useState(false); // tab panel collapsed (viewports full)
-  const workspaceRef = useRef(null);
-  const prevFlexRef  = useRef(65); // remember flex before collapsing
+const IS_MOBILE = typeof navigator !== 'undefined' &&
+  (navigator.maxTouchPoints > 0 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
 
-  // ── View type state for each viewport ────────────────────────────
+function checkGyroAvailable(cb) {
+  if (typeof DeviceOrientationEvent === 'undefined') { cb(false); return; }
+  const hasPermission = typeof DeviceOrientationEvent.requestPermission === 'function';
+  if (!hasPermission) {
+    const handler = (e) => {
+      window.removeEventListener('deviceorientation', handler);
+      cb(e.gamma != null);
+    };
+    window.addEventListener('deviceorientation', handler, { once: true });
+    setTimeout(() => { window.removeEventListener('deviceorientation', handler); cb(false); }, 500);
+  } else {
+    cb(true); // iOS — assume available; permission requested on button press
+  }
+}
+
+export default function App() {
+  // ── Layout ────────────────────────────────────────────────────────
+  const [viewportFlex, setViewportFlex] = useState(65);
+  const [isDraggingV,  setIsDraggingV]  = useState(false);
+  const [vpCollapsed,  setVpCollapsed]  = useState(false);
+  const [tabCollapsed, setTabCollapsed] = useState(false);
+  const workspaceRef = useRef(null);
+  const prevFlexRef  = useRef(65);
+
+  // ── Mobile tab ────────────────────────────────────────────────────
+  const [mobileTab, setMobileTab] = useState('view');
+
+  // ── View types ────────────────────────────────────────────────────
   const [view1Type, setView1Type] = useState('third_person');
   const [view2Type, setView2Type] = useState('bee_eye');
 
-  // ── Simulation refs (not React state – mutable) ───────────────────
-  // simRef.current = { scene, bee, beeEye, getTerrainHeight, serialise, dispose }
-  const simRef = useRef(null);
+  // ── Simulation refs ───────────────────────────────────────────────
+  const simRef   = useRef(null);
+  const kbRef    = useRef(null);
+  const touchRef = useRef(null);
 
-  // ── Viewport render refs (exposed via useImperativeHandle) ────────
+  // ── Viewport refs ─────────────────────────────────────────────────
   const viewport1Ref = useRef(null);
   const viewport2Ref = useRef(null);
 
-  // ── Status display ────────────────────────────────────────────────
-  const [flightMode,      setFlightMode]      = useState('Free Flight');
+  // ── Status state ──────────────────────────────────────────────────
+  const [flightMode,      setFlightMode]      = useState('Fast');
   const [speed,           setSpeed]           = useState(0);
-  // Map-space position (origin SW corner, X east, Y north) in metres
   const [beePos,          setBeePos]          = useState({ x: 100, y: 100 });
-  // Compass bearing 0–360° (0 = N)
   const [beeOrientation,  setBeeOrientation]  = useState(0);
-  // Absolute (ASL) altitude = bee.position.y
   const [beeAltitude,     setBeeAltitude]     = useState(0);
-  // Altitude above terrain directly below the bee
   const [terrainAltitude, setTerrainAltitude] = useState(0);
 
-  // ── Initialise simulation ─────────────────────────────────────────
+  // ── Gyro state ────────────────────────────────────────────────────
+  const [gyroAvailable, setGyroAvailable] = useState(false);
+  const [gyroEnabled,   setGyroEnabled]   = useState(false);
+
+  // (OSC toggle is now per-viewport — no global state needed here)
+
+  // ── Init ──────────────────────────────────────────────────────────
   useEffect(() => {
     const seed = 12345;
     const { scene, getTerrainHeight, serialise, deserialise, dispose, flowerData } = buildScene(seed);
 
-    const bee = new BeeController(getTerrainHeight);
+    const bee    = new BeeController(getTerrainHeight);
+    const beeEye = new BeeEyeRenderer();
     bee.position.set(0, 4, 10);
     scene.add(bee.mesh);
 
-    const beeEye = new BeeEyeRenderer();
-
     simRef.current = { scene, bee, beeEye, getTerrainHeight, serialise, deserialise, dispose, seed, flowerData };
 
+    kbRef.current    = new KeyboardController(() => bee.flightMode);
+    touchRef.current = new TouchController();
+
+    if (IS_MOBILE) checkGyroAvailable((a) => setGyroAvailable(a));
+
     return () => {
+      kbRef.current?.dispose();
+      touchRef.current?.dispose();
       bee.dispose();
       beeEye.dispose();
       dispose();
@@ -83,146 +115,176 @@ export default function App() {
         : 0.016;
       lastTime.current = time;
 
-      // Update bee physics
+      clearInputState();
+      kbRef.current?.flush();
+      // Pass whether we're in hover mode so touchController maps axes correctly
+      touchRef.current?.flush(sim.bee.flightMode === FLIGHT.HOVER);
       sim.bee.update(dt);
 
-      // Throttled status update (every ~10 frames)
       statusThrottle++;
       if (statusThrottle >= 10) {
         statusThrottle = 0;
         const b = sim.bee;
         setFlightMode(b.flightModeLabel);
         setSpeed(b.speed);
-
-        // Map-space coords: origin SW, X east, Y north (0–200 m)
-        setBeePos({
-          x:  b.position.x + 100,
-          y: -b.position.z + 100,
-        });
-
-        // Compass bearing: bodyYaw=0 → N; positive bodyYaw → CCW (W)
+        setBeePos({ x: b.position.x + 100, y: -b.position.z + 100 });
         const bearing = (((-b.bodyYaw * 180) / Math.PI) % 360 + 360) % 360;
         setBeeOrientation(bearing);
-
-        // Altitude
         const absAlt     = b.position.y;
         const groundElev = sim.getTerrainHeight(b.position.x, b.position.z);
         setBeeAltitude(absAlt);
         setTerrainAltitude(absAlt - groundElev);
       }
 
-      // Render each viewport
       viewport1Ref.current?.render();
-      viewport2Ref.current?.render();
+      if (!IS_MOBILE) viewport2Ref.current?.render();
     };
 
     rafRef.current = requestAnimationFrame(animate);
     return () => cancelAnimationFrame(rafRef.current);
   }, []);
 
+  // ── Gyro toggle ───────────────────────────────────────────────────
+  const handleToggleGyro = useCallback(async () => {
+    const tc = touchRef.current;
+    if (!tc) return;
+    if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
+      try {
+        const perm = await DeviceOrientationEvent.requestPermission();
+        if (perm !== 'granted') return;
+      } catch { return; }
+    }
+    if (gyroEnabled) { tc.disableGyro(); setGyroEnabled(false); }
+    else             { tc.enableGyro();  setGyroEnabled(true);  }
+  }, [gyroEnabled]);
+
   // ── Collapse helpers ──────────────────────────────────────────────
   const collapseViewports = useCallback(() => {
     prevFlexRef.current = viewportFlex;
-    setViewportFlex(0);
-    setVpCollapsed(true);
-    setTabCollapsed(false);
+    setViewportFlex(0); setVpCollapsed(true); setTabCollapsed(false);
   }, [viewportFlex]);
 
   const collapseTabPanel = useCallback(() => {
     prevFlexRef.current = viewportFlex;
-    setViewportFlex(100);
-    setTabCollapsed(true);
-    setVpCollapsed(false);
+    setViewportFlex(100); setTabCollapsed(true); setVpCollapsed(false);
   }, [viewportFlex]);
 
   const restoreVertical = useCallback(() => {
     const prev = prevFlexRef.current || 65;
     setViewportFlex(Math.max(20, Math.min(85, prev)));
-    setVpCollapsed(false);
-    setTabCollapsed(false);
+    setVpCollapsed(false); setTabCollapsed(false);
   }, []);
 
-  // ── Vertical drag (viewport ↕ tab panel) ─────────────────────────
+  // ── Vertical drag ─────────────────────────────────────────────────
   const onVDragStart = useCallback((e) => {
     e.preventDefault();
     setIsDraggingV(true);
-    const startY = e.clientY;
+    const startY    = e.clientY;
     const startFlex = viewportFlex;
-
     const onMove = (me) => {
       const ws = workspaceRef.current;
       if (!ws) return;
-      const h = ws.getBoundingClientRect().height;
-      const dy = me.clientY - startY;
-      const raw = startFlex + (dy / h) * 100;
-
-      // Snap to collapse if dragged to extremes
-      if (raw < 8) {
-        setViewportFlex(0);
-        setVpCollapsed(true);
-        setTabCollapsed(false);
-      } else if (raw > 92) {
-        setViewportFlex(100);
-        setTabCollapsed(true);
-        setVpCollapsed(false);
-      } else {
-        setViewportFlex(Math.max(20, Math.min(85, raw)));
-        setVpCollapsed(false);
-        setTabCollapsed(false);
-      }
+      const raw = startFlex + ((me.clientY - startY) / ws.getBoundingClientRect().height) * 100;
+      if (raw < 8)       { setViewportFlex(0);   setVpCollapsed(true);  setTabCollapsed(false); }
+      else if (raw > 92) { setViewportFlex(100);  setTabCollapsed(true); setVpCollapsed(false);  }
+      else               { setViewportFlex(Math.max(20, Math.min(85, raw))); setVpCollapsed(false); setTabCollapsed(false); }
     };
     const onUp = () => {
       setIsDraggingV(false);
       window.removeEventListener('mousemove', onMove);
-      window.removeEventListener('mouseup', onUp);
+      window.removeEventListener('mouseup',   onUp);
     };
     window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
+    window.addEventListener('mouseup',   onUp);
   }, [viewportFlex]);
 
-  // ── Save ──────────────────────────────────────────────────────────
+  // ── Save / Load ───────────────────────────────────────────────────
   const handleSave = useCallback(() => {
     const sim = simRef.current;
     if (!sim) return;
     const data = sim.serialise(sim.bee.serialise());
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url  = URL.createObjectURL(blob);
-    const a    = Object.assign(document.createElement('a'), {
-      href: url,
-      download: `virtualmeadow_${Date.now()}.json`,
-    });
-    a.click();
+    Object.assign(document.createElement('a'), { href: url, download: `virtualmeadow_${Date.now()}.json` }).click();
     URL.revokeObjectURL(url);
   }, []);
 
-  // ── Load ──────────────────────────────────────────────────────────
   const handleLoad = useCallback((data) => {
-    const sim = simRef.current;
-    if (!sim) return;
-    // Restore bee state; future: also rebuild scene with new seed
-    sim.bee.deserialise(data?.bee);
+    simRef.current?.bee?.deserialise(data?.bee);
   }, []);
 
-  // ── Drag-and-drop load anywhere on the app ────────────────────────
   const onAppDrop = useCallback((e) => {
     e.preventDefault();
     const file = e.dataTransfer.files?.[0];
     if (!file?.name.endsWith('.json')) return;
     const reader = new FileReader();
-    reader.onload = (ev) => {
-      try { handleLoad(JSON.parse(ev.target.result)); } catch { /* ignore */ }
-    };
+    reader.onload = (ev) => { try { handleLoad(JSON.parse(ev.target.result)); } catch { /* ignore */ } };
     reader.readAsText(file);
   }, [handleLoad]);
 
+  // ── Shared TouchControls props (passed to each Viewport via ViewportContainer) ──
+  const touchControlsProps = {
+    touchControllerRef: touchRef,
+    isHover:      flightMode === 'Hover',
+    speed,
+    gyroAvailable,
+    gyroEnabled,
+    onToggleGyro: handleToggleGyro,
+  };
+
+  // ── Mobile layout ─────────────────────────────────────────────────
+  if (IS_MOBILE) {
+    return (
+      <div className="app app-mobile" onDrop={onAppDrop} onDragOver={e => e.preventDefault()}>
+
+        <div className="mobile-nav">
+          <span className="mobile-title">VirtualMeadow <span>v.0.2</span></span>
+          <div className="mobile-tabs">
+            <button className={`mobile-tab-btn${mobileTab === 'view' ? ' active' : ''}`} onClick={() => setMobileTab('view')}>View</button>
+            <button className={`mobile-tab-btn${mobileTab === 'info' ? ' active' : ''}`} onClick={() => setMobileTab('info')}>Info</button>
+          </div>
+        </div>
+
+        {mobileTab === 'view' && (
+          <div className="mobile-viewport-wrap">
+            <ViewportContainer
+              simRef={simRef}
+              viewport1Ref={viewport1Ref}
+              viewport2Ref={viewport2Ref}
+              view1Type={view1Type}
+              view2Type={view2Type}
+              onView1Change={setView1Type}
+              onView2Change={setView2Type}
+              mobileOnly
+              touchControlsProps={touchControlsProps}
+            />
+          </div>
+        )}
+
+        {mobileTab === 'info' && (
+          <div className="mobile-info-wrap">
+            <TabPanel
+              flightMode={flightMode}
+              speed={speed}
+              beePos={beePos}
+              beeOrientation={beeOrientation}
+              beeAltitude={beeAltitude}
+              terrainAltitude={terrainAltitude}
+            />
+          </div>
+        )}
+
+      </div>
+    );
+  }
+
+  // ── Desktop layout ────────────────────────────────────────────────
   return (
     <div className="app" onDrop={onAppDrop} onDragOver={e => e.preventDefault()}>
-      {/* Title bar */}
       <div className="titlebar">
-        VirtualMeadow <span>v.0.1</span>
+        VirtualMeadow <span>v.0.2</span>
       </div>
 
-      {/* Toolbar */}
       <Toolbar
         onSave={handleSave}
         onLoad={handleLoad}
@@ -230,12 +292,9 @@ export default function App() {
         speed={speed}
       />
 
-      {/* Main workspace */}
       <div className="workspace" ref={workspaceRef}>
 
-        {/* ── Viewport area ─────────────────────────────────────────── */}
         {vpCollapsed ? (
-          /* Restore strip shown when viewports are collapsed */
           <div className="vcol-strip vcol-strip-top" onClick={restoreVertical} title="Restore viewports">
             <span>▼ Viewports</span>
           </div>
@@ -249,25 +308,19 @@ export default function App() {
               view2Type={view2Type}
               onView1Change={setView1Type}
               onView2Change={setView2Type}
+              touchControlsProps={touchControlsProps}
             />
           </div>
         )}
 
-        {/* ── Vertical drag handle (hidden when either panel collapsed) ── */}
         {!vpCollapsed && !tabCollapsed && (
-          <div
-            className={`vdrag-handle${isDraggingV ? ' dragging' : ''}`}
-            onMouseDown={onVDragStart}
-          >
-            {/* Collapse arrows */}
+          <div className={`vdrag-handle${isDraggingV ? ' dragging' : ''}`} onMouseDown={onVDragStart}>
             <span className="vdrag-arrow vdrag-arrow-up"   onClick={collapseViewports} title="Collapse viewports">▲</span>
             <span className="vdrag-arrow vdrag-arrow-down" onClick={collapseTabPanel}  title="Collapse tab panel">▼</span>
           </div>
         )}
 
-        {/* ── Tab panel ─────────────────────────────────────────────── */}
         {tabCollapsed ? (
-          /* Restore strip shown when tab panel is collapsed */
           <div className="vcol-strip vcol-strip-bottom" onClick={restoreVertical} title="Restore tab panel">
             <span>▲ Tabs</span>
           </div>

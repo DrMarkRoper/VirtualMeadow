@@ -23,33 +23,34 @@ function cardinalLabel(deg) {
 function HelpTab() {
   return (
     <div className="tab-content">
-      {/* Flight Modes intro — full width */}
+
+      {/* Flight Modes intro */}
       <div className="help-section">
         <h3>Flight Modes</h3>
-        <p>The bee has two flight modes. Press <b style={{color:'#f5a623'}}>H</b> or <b style={{color:'#f5a623'}}>Tab</b> to toggle (you must slow down first to enter hover).</p>
-        <p className="help-note">Free Flight is fast, forward-directed movement. Hover is helicopter-like movement in any direction at lower speed.</p>
+        <p>The bee has two flight modes. Press <b style={{color:'#f5a623'}}>H</b> or <b style={{color:'#f5a623'}}>Tab</b> to toggle (slow down first to enter Hover). On touch screens tap the <b style={{color:'#f5a623'}}>🐝 FAST</b> / <b style={{color:'#4caf50'}}>🚁 HOVER</b> button at the top of the controls overlay.</p>
+        <p className="help-note">Fast is forward-directed flight; speed is held when you release the throttle. Hover is helicopter-style: any direction, low speed.</p>
       </div>
 
-      {/* Two columns: Free Flight | Hover */}
+      {/* Keyboard: Fast | Hover side-by-side */}
       <div className="help-two-col">
         <div className="help-section">
-          <h3>Free Flight Controls</h3>
+          <h3>Fast Mode — Keyboard</h3>
           <table className="help-table">
             <tbody>
-              <tr><td>W / ↑</td><td>Accelerate forward</td></tr>
-              <tr><td>S / ↓</td><td>Brake / slow down</td></tr>
-              <tr><td>A / ←</td><td>Head yaw left (body follows)</td></tr>
-              <tr><td>D / →</td><td>Head yaw right (body follows)</td></tr>
-              <tr><td>Space</td><td>Ascend / climb</td></tr>
+              <tr><td>W / ↑</td><td>Accelerate</td></tr>
+              <tr><td>S / ↓</td><td>Brake</td></tr>
+              <tr><td>A / ←</td><td>Yaw left (head, body follows)</td></tr>
+              <tr><td>D / →</td><td>Yaw right (head, body follows)</td></tr>
+              <tr><td>Space</td><td>Climb</td></tr>
               <tr><td>Shift / Ctrl</td><td>Descend</td></tr>
-              <tr><td>H / Tab</td><td>Switch to Hover mode</td></tr>
+              <tr><td>H / Tab</td><td>Switch to Hover</td></tr>
             </tbody>
           </table>
-          <p className="help-note">Head yaws first, body gradually catches up over ~0.3–1.5 s. Direction of travel follows the body heading.</p>
+          <p className="help-note">Head snaps first; body catches up over ~100 ms — the bee zig-zag. Speed holds when key released.</p>
         </div>
 
         <div className="help-section">
-          <h3>Hover / Scanning Controls</h3>
+          <h3>Hover Mode — Keyboard</h3>
           <table className="help-table">
             <tbody>
               <tr><td>W / ↑</td><td>Move forward</td></tr>
@@ -58,31 +59,60 @@ function HelpTab() {
               <tr><td>D / →</td><td>Strafe right</td></tr>
               <tr><td>Q</td><td>Yaw left</td></tr>
               <tr><td>E</td><td>Yaw right</td></tr>
-              <tr><td>Space</td><td>Ascend</td></tr>
+              <tr><td>Space</td><td>Climb</td></tr>
               <tr><td>Shift / Ctrl</td><td>Descend</td></tr>
-              <tr><td>H / Tab</td><td>Switch to Free Flight</td></tr>
+              <tr><td>H / Tab</td><td>Switch to Fast</td></tr>
             </tbody>
           </table>
-          <p className="help-note">Helicopter-style — strafe in any direction at low speed. Yaw via Q/E or saccade keys (1–0).</p>
+          <p className="help-note">Strafe in any direction. Yaw via Q/E or saccade keys (1–0).</p>
         </div>
       </div>
 
-      {/* Two columns: Saccades 1–5 (left) | 6–0 (right) */}
+      {/* Touch: Fast | Hover side-by-side */}
+      <div className="help-two-col">
+        <div className="help-section">
+          <h3>Fast Mode — Touch</h3>
+          <table className="help-table">
+            <tbody>
+              <tr><td>Left stick ↑↓</td><td>Accelerate / brake</td></tr>
+              <tr><td>Left stick ←→</td><td>Yaw left (YL) / right (YR)</td></tr>
+              <tr><td>Right stick ↑↓</td><td>Climb / descend</td></tr>
+              <tr><td>◀ / ▶ buttons</td><td>Saccade 15° or 30°</td></tr>
+            </tbody>
+          </table>
+          <p className="help-note">Right stick horizontal axis is locked in fast mode — altitude only.</p>
+        </div>
+
+        <div className="help-section">
+          <h3>Hover Mode — Touch</h3>
+          <table className="help-table">
+            <tbody>
+              <tr><td>Left stick ↑↓</td><td>Move forward / backward</td></tr>
+              <tr><td>Left stick ←→</td><td>Strafe left (SL) / right (SR)</td></tr>
+              <tr><td>Right stick ↑↓</td><td>Climb / descend</td></tr>
+              <tr><td>Right stick ←→</td><td>Yaw left (YL) / right (YR)</td></tr>
+              <tr><td>◀ / ▶ buttons</td><td>Saccade 15° or 30°</td></tr>
+            </tbody>
+          </table>
+          <p className="help-note">Toggle the 🕹 button in the view selector to show/hide on-screen controls on desktop.</p>
+        </div>
+      </div>
+
+      {/* Saccades */}
       <div className="help-two-col">
         <div className="help-section">
           <h3>Saccades 1–5 (Left)</h3>
           <table className="help-table">
             <tbody>
-              <tr><td>1</td><td>75° anti-clockwise (left)</td></tr>
+              <tr><td>1</td><td>75° left</td></tr>
               <tr><td>2</td><td>30° left</td></tr>
               <tr><td>3</td><td>15° left</td></tr>
               <tr><td>4</td><td>5° left</td></tr>
               <tr><td>5</td><td>2° left</td></tr>
             </tbody>
           </table>
-          <p className="help-note">One-shot snaps. Free Flight: head snaps, body follows. Hover: whole bee rotates.</p>
+          <p className="help-note">One-shot snaps on keydown. Fast: head snaps, body follows. Hover: whole bee rotates.</p>
         </div>
-
         <div className="help-section">
           <h3>Saccades 6–0 (Right)</h3>
           <table className="help-table">
@@ -91,41 +121,44 @@ function HelpTab() {
               <tr><td>7</td><td>5° right</td></tr>
               <tr><td>8</td><td>15° right</td></tr>
               <tr><td>9</td><td>30° right</td></tr>
-              <tr><td>0</td><td>75° clockwise (right)</td></tr>
+              <tr><td>0</td><td>75° right</td></tr>
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Full-width sections */}
+      {/* Views */}
       <div className="help-section">
         <h3>Viewport Views</h3>
         <table className="help-table">
           <tbody>
-            <tr><td>🗺 Map</td><td>2D top-down god/map view of the meadow</td></tr>
-            <tr><td>🎥 3rd Person</td><td>Camera follows behind and above the bee</td></tr>
-            <tr><td>👁 1st Person</td><td>Camera at the bee's head position, looking forward</td></tr>
-            <tr><td>🐝 Bee Eye</td><td>Compound eye ommatidia view (B-EYE algorithm, after Andy Giger)</td></tr>
+            <tr><td>🗺 Map</td><td>2D top-down god/map view</td></tr>
+            <tr><td>🎥 3rd</td><td>Camera behind and above the bee</td></tr>
+            <tr><td>👁 1st</td><td>Camera at the bee's head, facing forward</td></tr>
+            <tr><td>🐝 Eye</td><td>Compound eye ommatidia view (B-EYE)</td></tr>
+            <tr><td>🕹 OSC</td><td>Toggle on-screen controls for this panel</td></tr>
           </tbody>
         </table>
-        <p className="help-note">Click any view thumbnail in the bottom-left of a viewport to switch its camera. Both viewports can show the same or different views simultaneously.</p>
+        <p className="help-note">Desktop: click any thumbnail to switch the view. Both panels can show different views simultaneously. Mobile: tap View / Info tabs to switch between the viewport and status panel.</p>
       </div>
 
+      {/* Layout */}
       <div className="help-section">
-        <h3>Panels &amp; Layout</h3>
+        <h3>Panels &amp; Layout (Desktop)</h3>
         <table className="help-table">
           <tbody>
-            <tr><td>Divider (H)</td><td>Drag between the two viewports to resize. Drag to the edge to collapse one panel.</td></tr>
-            <tr><td>Divider (V)</td><td>Drag between viewports and this tab panel to resize vertically.</td></tr>
-            <tr><td>Arrow strip</td><td>Click the arrow strip at either side of the viewport area to expand a collapsed viewport.</td></tr>
+            <tr><td>H divider</td><td>Drag to resize or collapse either viewport.</td></tr>
+            <tr><td>V divider</td><td>Drag to resize viewport / tab panel split.</td></tr>
           </tbody>
         </table>
       </div>
 
+      {/* Save/Load */}
       <div className="help-section">
         <h3>Save / Load</h3>
-        <p>Use the <b style={{color:'#f5a623'}}>💾 Save</b> button to download a JSON file with the bee position and world seed. Use <b style={{color:'#f5a623'}}>📂 Open</b> or drag-and-drop a JSON file onto the app to restore a saved session.</p>
+        <p>Use <b style={{color:'#f5a623'}}>💾 Save</b> to download a JSON snapshot. Use <b style={{color:'#f5a623'}}>📂 Open</b> or drag-and-drop a JSON file to restore.</p>
       </div>
+
     </div>
   );
 }
