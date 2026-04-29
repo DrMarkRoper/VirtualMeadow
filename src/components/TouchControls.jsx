@@ -154,6 +154,7 @@ function VirtualJoystick({ canvasRef, label }) {
 export default function TouchControls({
   touchControllerRef,
   isHover,
+  pendingHover,
   speed,
   gyroAvailable,
   gyroEnabled,
@@ -339,8 +340,8 @@ export default function TouchControls({
     touchControllerRef?.current?.triggerModeToggle();
   }, [touchControllerRef]);
 
-  // Mode button disabled when in fast mode and moving too fast to transition
-  const modeDisabled = !isHover && speed > MIN_HOVER_SPEED;
+  // Mode button disabled while the bee is auto-braking to enter hover
+  const modeDisabled = pendingHover;
 
   return (
     <div className="touch-overlay">
@@ -405,9 +406,9 @@ export default function TouchControls({
           className={`touch-mode-btn${isHover ? ' hover' : ''}${modeDisabled ? ' disabled' : ''}`}
           onClick={onModeToggle}
           disabled={modeDisabled}
-          title={modeDisabled ? `Slow below ${MIN_HOVER_SPEED} m/s to switch` : 'Toggle flight mode (Tab)'}
+          title={pendingHover ? 'Braking to hover…' : 'Toggle flight mode (Tab)'}
         >
-          {isHover ? '🚁 HOVER' : '🐝 FAST'}
+          {pendingHover ? '⏸ BRAKING' : isHover ? '🚁 HOVER' : '🐝 FAST'}
         </button>
 
         {/* Gyro toggle */}

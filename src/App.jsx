@@ -59,6 +59,7 @@ export default function App() {
 
   // ── Status state ──────────────────────────────────────────────────
   const [flightMode,      setFlightMode]      = useState('Fast');
+  const [pendingHover,    setPendingHover]    = useState(false);
   const [speed,           setSpeed]           = useState(0);
   const [beePos,          setBeePos]          = useState({ x: 100, y: 100 });
   const [beeOrientation,  setBeeOrientation]  = useState(0);
@@ -126,6 +127,7 @@ export default function App() {
         statusThrottle = 0;
         const b = sim.bee;
         setFlightMode(b.flightModeLabel);
+        setPendingHover(b.pendingHover);
         setSpeed(b.speed);
         setBeePos({ x: b.position.x + 100, y: -b.position.z + 100 });
         const bearing = (((-b.bodyYaw * 180) / Math.PI) % 360 + 360) % 360;
@@ -226,6 +228,7 @@ export default function App() {
   const touchControlsProps = {
     touchControllerRef: touchRef,
     isHover:      flightMode === 'Hover',
+    pendingHover,
     speed,
     gyroAvailable,
     gyroEnabled,

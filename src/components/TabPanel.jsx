@@ -27,8 +27,8 @@ function HelpTab() {
       {/* Flight Modes intro */}
       <div className="help-section">
         <h3>Flight Modes</h3>
-        <p>The bee has two flight modes. Press <b style={{color:'#f5a623'}}>H</b> or <b style={{color:'#f5a623'}}>Tab</b> to toggle (slow down first to enter Hover). On touch screens tap the <b style={{color:'#f5a623'}}>🐝 FAST</b> / <b style={{color:'#4caf50'}}>🚁 HOVER</b> button at the top of the controls overlay.</p>
-        <p className="help-note">Fast is forward-directed flight; speed is held when you release the throttle. Hover is helicopter-style: any direction, low speed.</p>
+        <p>The bee has two flight modes. Press <b style={{color:'#f5a623'}}>H</b> or <b style={{color:'#f5a623'}}>Tab</b> to toggle at any speed. On touch screens tap the <b style={{color:'#f5a623'}}>🐝 FAST</b> / <b style={{color:'#4caf50'}}>🚁 HOVER</b> button at the top of the controls overlay.</p>
+        <p className="help-note">Fast is forward-directed flight; speed is held when you release the throttle. Pressing H/Tab while moving will automatically brake the bee to a stop before entering Hover — the button shows <b>⏸ BRAKING</b> during this transition. Hover is helicopter-style: any direction, low speed.</p>
       </div>
 
       {/* Keyboard: Fast | Hover side-by-side */}

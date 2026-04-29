@@ -155,8 +155,9 @@ export class BeeController {
     this.position   = new THREE.Vector3(0, 4, 10);
     this.bodyYaw    = 0;
     this.headYaw    = 0;
-    this.speed      = 0;
-    this.flightMode = FLIGHT.FREE;
+    this.speed        = 0;
+    this.flightMode   = FLIGHT.FREE;
+    this._pendingHover = false;   // true while auto-braking to enter hover
 
     this.hoverVelX = 0;
     this.hoverVelZ = 0;
@@ -168,17 +169,24 @@ export class BeeController {
 
   _tryToggleFlightMode() {
     if (this.flightMode === FLIGHT.FREE) {
-      if (this.speed <= PARAMS.minHoverSpeed) {
-        this.flightMode = FLIGHT.HOVER;
-        this.speed = 0;
-        this.hoverVelX = 0;
-        this.hoverVelZ = 0;
+      if (this._pendingHover) return;   // already braking, ignore repeat presses
+      if (this.speed === 0) {
+        // Already stopped — switch instantly
+        this.flightMode    = FLIGHT.HOVER;
+        this.hoverVelX     = 0;
+        this.hoverVelZ     = 0;
+      } else {
+        // Moving — queue auto-brake; _updateFreeFlight will complete the switch
+        this._pendingHover = true;
       }
     } else {
-      this.flightMode = FLIGHT.FREE;
-      this.speed = 0;
+      this.flightMode    = FLIGHT.FREE;
+      this._pendingHover = false;
+      this.speed         = 0;
     }
   }
+
+  get pendingHover() { return this._pendingHover; }
 
   get flightModeLabel() { return this.flightMode === FLIGHT.FREE ? 'Fast' : 'Hover'; }
 
@@ -265,11 +273,22 @@ export class BeeController {
     this.bodyYaw += follow;
     this.headYaw -= follow;
 
-    // Speed — accelerate on forward input, brake on back input, HOLD on release
-    if (inp.move.fwd > 0)
-      this.speed = Math.min(this.speed + p.accel * inp.move.fwd * dt, p.maxSpeed);
-    else if (inp.move.fwd < 0)
-      this.speed = Math.max(this.speed + p.braking * inp.move.fwd * dt, 0);
+    if (this._pendingHover) {
+      // Auto-brake to hover — ignore player throttle, apply full braking
+      this.speed = Math.max(0, this.speed - p.braking * dt);
+      if (this.speed === 0) {
+        this._pendingHover = false;
+        this.flightMode    = FLIGHT.HOVER;
+        this.hoverVelX     = 0;
+        this.hoverVelZ     = 0;
+      }
+    } else {
+      // Normal speed control — accelerate, brake, or hold
+      if (inp.move.fwd > 0)
+        this.speed = Math.min(this.speed + p.accel * inp.move.fwd * dt, p.maxSpeed);
+      else if (inp.move.fwd < 0)
+        this.speed = Math.max(this.speed + p.braking * inp.move.fwd * dt, 0);
+    }
 
     const fwd = this.bodyForward;
     this.position.x += fwd.x * this.speed * dt;

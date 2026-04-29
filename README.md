@@ -20,7 +20,7 @@ A second viewport renders the world through a simulated compound eye (the B-EYE 
 
 ## Features
 
-- **Two flight modes** — Fast and Hover, switchable on the fly; speed is held when the throttle key is released in Fast mode
+- **Two flight modes** — Fast and Hover, switchable at any speed; triggering the switch while moving automatically brakes the bee to a stop before entering Hover; speed is held when the throttle key is released in Fast mode
 - **Saccadic yaw** — head snaps instantly to a new angle; body follows rapidly behind (~100 ms delay), replicating the zig-zag flight pattern of real bees
 - **Terrain-following flight** — the bee maintains a constant height above the ground surface.
 - **Dual compound eye view** — a B-EYE renderer produces left and right eye mosaics side-by-side, each a 60°-tilted field sampled through ~4,900 ommatidia with Gaussian acceptance kernels; overlapping binocular ommatidia can be highlighted in gold
@@ -61,8 +61,10 @@ npm run preview    # local preview of the production build
 
 | Input | Action |
 |-------|--------|
-| `H` or `Tab` | Switch between Fast and Hover (slow down first to enter Hover) |
-| Touch **🐝 FAST** / **🚁 HOVER** button | Same toggle on touch screens (button is disabled while speed > 0.6 m/s) |
+| `H` or `Tab` | Switch between Fast and Hover at any speed |
+| Touch **🐝 FAST** / **🚁 HOVER** button | Same toggle on touch screens |
+
+Pressing the toggle while moving in Fast mode will automatically brake the bee to a stop at full deceleration before entering Hover — the touch button shows **⏸ BRAKING** during this transition and cannot be re-triggered until it completes.
 
 ---
 
