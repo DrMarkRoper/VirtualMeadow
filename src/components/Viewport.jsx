@@ -10,6 +10,7 @@
  */
 import { useRef, useEffect, useImperativeHandle, forwardRef, useState } from 'react';
 import * as THREE from 'three';
+import TouchControls from './TouchControls.jsx';
 
 const VIEW_TYPES = [
   { id: 'third_person', icon: '🎥', label: '3rd' },
@@ -170,7 +171,7 @@ function drawMapBee(ctx, bee, cw, ch) {
 // ─── Viewport component ──────────────────────────────────────────────────────
 
 const Viewport = forwardRef(function Viewport(
-  { viewType, onViewChange, simRef, label },
+  { viewType, onViewChange, simRef, label, touchControlsProps },
   ref
 ) {
   const glCanvasRef  = useRef(null);  // WebGL canvas (3rd person, 1st person, eye cam)
@@ -182,6 +183,13 @@ const Viewport = forwardRef(function Viewport(
   const mapBgRef     = useRef(null);  // cached offscreen background for the map
   const mapSizeRef   = useRef({ w: 0, h: 0 });
   const [ready, setReady] = useState(false);
+
+  // Per-viewport on-screen controls toggle.
+  // Default ON for mobile (touch users need controls immediately),
+  // OFF for desktop (keyboard users don't want the overlay by default).
+  const IS_MOBILE_INIT = typeof navigator !== 'undefined' &&
+    (navigator.maxTouchPoints > 0 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
+  const [showOSC, setShowOSC] = useState(IS_MOBILE_INIT);
 
   // Bee-eye display options (per-viewport so two viewports can hold
   // independent settings if both ever show bee_eye)
@@ -361,7 +369,7 @@ const Viewport = forwardRef(function Viewport(
         />
       </div>
 
-      {/* View selector thumbnails (+ bee-eye controls on the right) */}
+      {/* View selector thumbnails (+ bee-eye controls + OSC toggle) */}
       <div className="view-selector">
         {VIEW_TYPES.map(vt => (
           <div
@@ -398,7 +406,22 @@ const Viewport = forwardRef(function Viewport(
             </label>
           </div>
         )}
+        {/* On-screen controls toggle — only shown when props are wired in */}
+        {touchControlsProps && (
+          <button
+            className={`view-osc-btn${showOSC ? ' active' : ''}`}
+            onClick={() => setShowOSC(v => !v)}
+            title={showOSC ? 'Hide on-screen controls' : 'Show on-screen controls'}
+          >
+            🕹
+          </button>
+        )}
       </div>
+
+      {/* On-screen controls overlay — sits inside this viewport only */}
+      {showOSC && touchControlsProps && (
+        <TouchControls {...touchControlsProps} />
+      )}
     </div>
   );
 });

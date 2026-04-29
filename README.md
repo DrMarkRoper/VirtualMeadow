@@ -10,7 +10,7 @@ Try the live demo: <a href="https://DrMarkRoper.github.io/VirtualMeadow" target=
 
 ## What is it?
 
-VirtualMeadow drops you into a procedurally generated wildflower meadow and lets you fly through it as a bee. It has two distinct flight modes — fast free flight with saccadic head-then-body turning (matching how bees actually navigate), and slow hovering for close inspection of flowers.
+VirtualMeadow drops you into a procedurally generated wildflower meadow and lets you fly through it as a bee. It has two distinct flight modes — Fast (forward-directed flight with saccadic head-then-body turning, matching how bees actually navigate) and Hover (helicopter-style, any direction, low speed) for close inspection of flowers.
 
 The bee automatically follows the terrain contour at a constant height above the ground, mimicking optic-flow-based terrain following used by real bees in flight. Space and Shift control the target height above ground; if the terrain rises, the bee rises with it.
 
@@ -20,13 +20,15 @@ A second viewport renders the world through a simulated compound eye (the B-EYE 
 
 ## Features
 
-- **Two flight modes** — free flight and hover, switchable on the fly
+- **Two flight modes** — Fast and Hover, switchable on the fly; speed is held when the throttle key is released in Fast mode
 - **Saccadic yaw** — head snaps instantly to a new angle; body follows rapidly behind (~100 ms delay), replicating the zig-zag flight pattern of real bees
 - **Terrain-following flight** — the bee maintains a constant height above the ground surface.
 - **Dual compound eye view** — a B-EYE renderer produces left and right eye mosaics side-by-side, each a 60°-tilted field sampled through ~4,900 ommatidia with Gaussian acceptance kernels; overlapping binocular ommatidia can be highlighted in gold
 - **Four viewports** — 3rd person, 1st person, top-down map (with compass), and compound eye; each panel can show any view independently
 - **Procedural world** — fractal noise terrain, 280 flowers across 6 species, 18 cloud groups, all seeded for reproducibility
+- **Full touch / mobile support** — on-screen virtual joysticks, saccade buttons, mode toggle, and optional device-orientation (gyroscope) yaw; compound-eye renderer runs in a performance-reduced mode on mobile
 - **Live status panel** — real-time display of map-space position (X east / Y north, SW-corner origin), compass bearing with cardinal label, above-ground and absolute altitude
+- **World boundary** — hard stop at the meadow edge (±100 m); the bee cannot fly beyond the terrain
 - **Save / Load** — export and restore the bee's position, heading, speed as a JSON file
 
 ---
@@ -57,28 +59,29 @@ npm run preview    # local preview of the production build
 
 ### Flight mode toggle
 
-| Key | Action |
-|-----|--------|
-| `H` or `Tab` | Switch between Free Flight and Hover (slow down first to enter Hover) |
+| Input | Action |
+|-------|--------|
+| `H` or `Tab` | Switch between Fast and Hover (slow down first to enter Hover) |
+| Touch **🐝 FAST** / **🚁 HOVER** button | Same toggle on touch screens (button is disabled while speed > 0.6 m/s) |
 
 ---
 
-### Free Flight
+### Fast Mode (keyboard)
 
-Fast, forward-directed movement. The bee always flies in the direction its body is pointing; the head can look ahead of the body turn.
+Fast, forward-directed movement. Speed is held when you release the throttle key.
 
 | Key | Action |
 |-----|--------|
 | `W` / `↑` | Accelerate forward |
 | `S` / `↓` | Brake |
-| `A` / `←` | Turn head left (body follows) |
-| `D` / `→` | Turn head right (body follows) |
-| `Space` | Increase target height above ground (climb) |
-| `Shift` / `Ctrl` | Decrease target height above ground (descend) |
+| `A` / `←` | Yaw left (head snaps, body follows ~100 ms) |
+| `D` / `→` | Yaw right (head snaps, body follows ~100 ms) |
+| `Space` | Climb |
+| `Shift` / `Ctrl` | Descend |
 
 ---
 
-### Hover
+### Hover Mode (keyboard)
 
 Helicopter-style low-speed movement. Useful for inspecting individual flowers.
 
@@ -90,14 +93,39 @@ Helicopter-style low-speed movement. Useful for inspecting individual flowers.
 | `D` / `→` | Strafe right |
 | `Q` | Yaw left |
 | `E` | Yaw right |
-| `Space` | Increase target height above ground (climb) |
-| `Shift` / `Ctrl` | Decrease target height above ground (descend) |
+| `Space` | Climb |
+| `Shift` / `Ctrl` | Descend |
+
+---
+
+### Touch / On-Screen Controls
+
+Virtual joystick overlays appear automatically on mobile. On desktop they can be toggled per viewport with the **🕹 OSC** button in the view selector.
+
+**Fast Mode — touch**
+
+| Control | Action |
+|---------|--------|
+| Left stick ↑↓ | Accelerate / brake |
+| Left stick ←→ | Yaw left (YL) / right (YR) |
+| Right stick ↑↓ | Climb / descend (ALT ONLY — horizontal axis locked) |
+| ◀ / ▶ buttons | Saccade 15° or 30° |
+
+**Hover Mode — touch**
+
+| Control | Action |
+|---------|--------|
+| Left stick ↑↓ | Move forward / backward |
+| Left stick ←→ | Strafe left (SL) / right (SR) |
+| Right stick ↑↓ | Climb / descend |
+| Right stick ←→ | Yaw left (YL) / right (YR) |
+| ◀ / ▶ buttons | Saccade 15° or 30° |
 
 ---
 
 ### Saccade keys (both modes)
 
-Bees navigate by a series of rapid fixed-angle saccades rather than smooth continuous turns. Press once for an instant snap; in free flight the head snaps and the body catches up within ~100–200 ms; in hover the whole bee rotates immediately.
+Bees navigate by a series of rapid fixed-angle saccades rather than smooth continuous turns. Press once for an instant snap; in Fast mode the head snaps and the body catches up within ~100–200 ms; in Hover mode the whole bee rotates immediately.
 
 | Key | Angle | Direction |
 |-----|-------|-----------|
@@ -116,7 +144,7 @@ Bees navigate by a series of rapid fixed-angle saccades rather than smooth conti
 
 ### Viewport switching
 
-Each of the two panels has four view buttons along the bottom:
+Each of the two panels has view buttons and a controls toggle in the toolbar along the bottom:
 
 | Icon | View | Description |
 |------|------|-------------|
@@ -124,6 +152,7 @@ Each of the two panels has four view buttons along the bottom:
 | 👁 1st | First person | Camera at the bee's head, facing the same direction |
 | 🗺 Map | God / Map | Top-down view with terrain, flowers, and compass |
 | 🐝 Eye | Bee Eye | Live dual compound-eye ommatidia render |
+| 🕹 OSC | On-screen controls | Toggle virtual joystick overlay for this viewport (on by default on mobile, off on desktop) |
 
 The Bee Eye panel also has two controls:
 
@@ -183,7 +212,7 @@ The panel below the viewports has three tabs:
 
 | Parameter | Value |
 |-----------|-------|
-| Max speed (free flight) | 8.0 m/s |
+| Max speed (Fast mode) | 8.0 m/s |
 | Acceleration | 4.0 m/s² |
 | Continuous head yaw rate | 2.0 rad/s |
 | Body yaw follow rate | 6.0 rad/s (head leads ~100 ms) |
@@ -191,7 +220,7 @@ The panel below the viewports has three tabs:
 | Min AGL | 0.5 m |
 | Max AGL | 60.0 m |
 | Terrain follow rate | 6.0 (exponential, time constant ≈ 167 ms) |
-| AGL climb rate (free flight) | 3.0 m/s |
+| AGL climb rate (Fast mode) | 3.0 m/s |
 | AGL climb rate (hover) | 1.0 m/s |
 | Wing flap rate | 12 Hz |
 
@@ -220,7 +249,7 @@ An ommatidium is flagged **binocular** if its head-local direction falls within 
 
 ### Sampling
 
-For each ommatidium `i`, the renderer applies a **Gaussian acceptance kernel** (`CreateGaussLow`): 25 angular sample directions (1 central + 8 × 2 rings) weighted by a Gaussian whose σ is derived from Laughlin & Horridge (1972). Each direction is:
+For each ommatidium `i`, the renderer applies a **Gaussian acceptance kernel** (`CreateGaussLow`): 25 angular sample directions (1 central + 8 × 2 rings) weighted by a Gaussian whose σ is derived from Laughlin & Horridge (1972). On mobile, the kernel is reduced to 9 samples (1 central + 1 ring) and the face targets to 64×64 to maintain interactive frame rates. Each direction is:
 
 1. Rotated from head-local space to world space by the bee's total head yaw (body yaw + relative head yaw)
 2. Projected onto the dominant cubemap face to get a pixel coordinate
@@ -236,10 +265,8 @@ Each eye's ommatidia are mapped into a 60×160 hex grid (`_buildWabe`) and drawn
 
 ## Known limitations
 
-- **No mobile / touch support** — keyboard only
-- **World boundary not enforced** — the bee can fly beyond the 200 m edge (terrain returns flat ground at the border)
 - **Save/load restores bee state only** — the world seed is saved but loading it does not yet rebuild the scene from a new seed
-- **B-EYE is CPU-bound** — the GPU → CPU pixel readback (`readRenderTargetPixels`) is synchronous; large render targets or slow GPUs will reduce frame rate
+- **B-EYE is CPU-bound** — the GPU → CPU pixel readback (`readRenderTargetPixels`) is synchronous; large render targets or slow GPUs will reduce frame rate; on mobile the renderer runs at reduced resolution and frame rate to compensate
 
 ---
 

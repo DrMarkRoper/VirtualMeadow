@@ -29,8 +29,18 @@
 
 import * as THREE from 'three';
 
+// ── Mobile detection ─────────────────────────────────────────────────────────
+// Checked once at module load — drives performance trade-offs below.
+const IS_MOBILE = typeof navigator !== 'undefined' &&
+  (navigator.maxTouchPoints > 0 || /Mobi|Android|iPhone|iPad/i.test(navigator.userAgent));
+
 // ── Parameters ───────────────────────────────────────────────────────────────
-const FACE_SIZE                = 128;                  // pixels per face render target
+// On mobile we cut the face render target from 128→64 (4× fewer pixels to
+// read back) and limit the Gaussian ring count to 1 (9 samples instead of 25).
+// The bee-eye render is also throttled to every 3rd frame via _eyeFrameSkip.
+const FACE_SIZE                = IS_MOBILE ? 64 : 128; // pixels per face render target
+const GAUSS_RINGS              = IS_MOBILE ? 1  : 2;   // rings in CreateGaussLow (1→9 samples, 2→25)
+const EYE_FRAME_SKIP           = IS_MOBILE ? 3  : 1;   // render bee-eye every Nth frame
 const DR                       = 2.6 / 180 * Math.PI;  // delta-rho — Laughlin & Horridge 1972
 const BGR                      = [0, 120, 40];         // colour returned for samples that miss
 const EMPTY_CELL               = [12, 12, 12];         // wabe cells with no ommatidium
@@ -118,6 +128,9 @@ export class BeeEyeRenderer {
 
     this._tmpTarget = new THREE.Vector3();
 
+    // Frame-skip counter for mobile throttling
+    this._eyeFrameCounter = 0;
+
     // Output 2-D canvas (set later via setCanvas)
     this.canvas = null;
     this.ctx    = null;
@@ -157,11 +170,13 @@ export class BeeEyeRenderer {
     this.nromm = Math.max(0, i - 4);
   }
 
-  // ── CreateGaussLow: direct port ───────────────────────────────────────────
+  // ── CreateGaussLow: direct port (GAUSS_RINGS controls how many rings) ─────
+  // Rings=2 → 1 + 8 + 16 = 25 samples (desktop default)
+  // Rings=1 → 1 + 8      =  9 samples (mobile, ~2.8× faster _procPat)
   _buildGauss() {
     this.gau[0] = { x: 0, y: 0, g: 0.10225 };
     this.gsp = 1;
-    for (let i = 1; i <= 2; i++) {
+    for (let i = 1; i <= GAUSS_RINGS; i++) {
       const k = i * 8;
       const g = 0.10225 * Math.exp(-0.6932 * Math.pow(i * 3 / 4.0, 2));
       for (let j = 0; j < k; j++) {
@@ -473,6 +488,12 @@ export class BeeEyeRenderer {
    */
   render(renderer, scene, headPosition, headYaw, beeMesh) {
     if (!scene || !renderer || !headPosition) return;
+
+    // Mobile frame-skip: only re-render the compound eye every Nth frame.
+    // The canvas retains its last painted frame in between, so the mosaic
+    // stays visible — it just updates less often (~10 fps on mobile).
+    this._eyeFrameCounter = (this._eyeFrameCounter + 1) % EYE_FRAME_SKIP;
+    if (this._eyeFrameCounter !== 0) return;
 
     // 1. Hide bee model
     let prevVis = true;

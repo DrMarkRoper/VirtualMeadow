@@ -68,6 +68,11 @@ html, body, #root {
   transition: background 0.15s;
 }
 .toolbar-btn:hover { background: #4a4a50; }
+.toolbar-btn-active {
+  background: #2a3a1a !important;
+  border-color: var(--accent2) !important;
+  color: var(--accent2) !important;
+}
 .toolbar-sep { width: 1px; height: 20px; background: var(--border); margin: 0 4px; }
 .toolbar-status {
   margin-left: auto;
@@ -100,6 +105,7 @@ html, body, #root {
   display: flex;
   min-height: 0;
   overflow: hidden;
+  position: relative;   /* anchors the desktop OSC overlay */
 }
 .tab-area {
   display: flex; flex-direction: column;
@@ -295,6 +301,32 @@ html, body, #root {
   color: rgba(255,255,255,0.65);
 }
 
+/* ── Per-viewport OSC toggle button (lives in .view-selector) ──────── */
+.view-osc-btn {
+  background: transparent;
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 4px;
+  color: rgba(255,255,255,0.55);
+  font-size: 14px;
+  line-height: 1;
+  width: 28px; height: 28px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  margin-left: 4px;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+  flex-shrink: 0;
+}
+.view-osc-btn:hover {
+  background: rgba(255,255,255,0.08);
+  border-color: rgba(255,255,255,0.35);
+  color: #fff;
+}
+.view-osc-btn.active {
+  background: rgba(245,166,35,0.20);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
 /* Viewport label (top-left) */
 .viewport-label {
   position: absolute;
@@ -387,4 +419,235 @@ html, body, #root {
   width: 120px;
   min-width: 120px;
   white-space: normal;
+}
+
+/* ── Mobile shell ─────────────────────────────────────────────────── */
+.app-mobile {
+  flex-direction: column;
+  /* touch-action intentionally NOT set here so info panel can scroll */
+}
+
+.mobile-nav {
+  height: 44px;
+  background: linear-gradient(135deg, #1a2a0a 0%, #0a1a1a 100%);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  flex-shrink: 0;
+  gap: 10px;
+}
+.mobile-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  letter-spacing: 0.4px;
+  flex: 1;
+}
+.mobile-title span { color: #888; font-weight: 400; font-size: 11px; margin-left: 4px; }
+
+.mobile-tabs {
+  display: flex;
+  gap: 4px;
+}
+.mobile-tab-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 4px 14px;
+  border-radius: 14px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.mobile-tab-btn.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #000;
+  font-weight: 600;
+}
+
+.mobile-viewport-wrap {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  /* Prevent browser pan/zoom inside the game view */
+  touch-action: none;
+}
+.mobile-info-wrap {
+  flex: 1;
+  overflow-y: scroll;         /* force scroll even with no overflow on iOS */
+  -webkit-overflow-scrolling: touch;
+  min-height: 0;
+  overscroll-behavior: contain;
+}
+
+/* ── Touch overlay ────────────────────────────────────────────────── */
+/*
+ * The overlay sits on top of the viewport canvas.  It uses pointer-events:
+ * none on the wrapper but re-enables them on the interactive zones, so the
+ * Three.js canvas still receives any events that miss the zones.
+ */
+.touch-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 20;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ── Joystick zones ───────────────────────────────────────────────── */
+.touch-zone {
+  position: absolute;
+  /* Raised high enough to clear the view-selector toolbar (≈ 50 px) */
+  bottom: 82px;
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.touch-zone-left  { left: 18px; }
+.touch-zone-right { right: 18px; }
+
+.vjoy-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+.vjoy-canvas {
+  /* The canvas size is set in JSX; CSS just makes it crisp */
+  image-rendering: pixelated;
+  touch-action: none;
+  border-radius: 50%;
+}
+.vjoy-label {
+  font-size: 9px;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  color: rgba(255,255,255,0.35);
+  pointer-events: none;
+}
+
+/* ── Saccade buttons ──────────────────────────────────────────────── */
+.touch-saccade-group {
+  position: absolute;
+  bottom: 218px;   /* moves up in step with the raised joysticks */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: auto;
+}
+.touch-saccade-left  { left: 20px; }
+.touch-saccade-right { right: 20px; }
+
+.touch-saccade-btn {
+  background: rgba(0,0,0,0.45);
+  border: 1px solid rgba(255,255,255,0.18);
+  border-radius: 8px;
+  color: rgba(255,255,255,0.75);
+  font-size: 20px;
+  line-height: 1;
+  width: 52px; height: 44px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 0.1s, border-color 0.1s;
+  touch-action: manipulation;
+  gap: 2px;
+  padding: 0;
+}
+.touch-saccade-btn span {
+  font-size: 9px;
+  color: rgba(255,255,255,0.45);
+  letter-spacing: 0.3px;
+  line-height: 1;
+}
+.touch-saccade-btn:active {
+  background: rgba(245,166,35,0.3);
+  border-color: rgba(245,166,35,0.7);
+  color: var(--accent);
+}
+
+/* ── Top bar (mode + gyro) ────────────────────────────────────────── */
+.touch-top-bar {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  pointer-events: auto;
+}
+
+.touch-mode-btn {
+  /* Solid block — clearly readable over sky */
+  background: #3a8f3e;
+  border: 1.5px solid #2a6e2e;
+  border-radius: 16px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  padding: 6px 16px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.12s;
+  white-space: nowrap;
+  text-shadow: 0 1px 2px rgba(0,0,0,0.4);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.35);
+}
+.touch-mode-btn.hover {
+  background: #1565c0;
+  border-color: #0d47a1;
+}
+.touch-mode-btn:active:not(:disabled) {
+  background: #b36d00;
+  border-color: #8a5200;
+}
+/* Greyed out when speed is too high to transition */
+.touch-mode-btn.disabled,
+.touch-mode-btn:disabled {
+  background: #3a3a3a;
+  border-color: #555;
+  color: rgba(255,255,255,0.35);
+  cursor: not-allowed;
+  box-shadow: none;
+  text-shadow: none;
+}
+
+.touch-gyro-btn {
+  background: rgba(0,0,0,0.40);
+  border: 1px solid rgba(255,255,255,0.20);
+  border-radius: 16px;
+  color: rgba(255,255,255,0.55);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 5px 12px;
+  cursor: pointer;
+  touch-action: manipulation;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  white-space: nowrap;
+}
+.touch-gyro-btn.active {
+  background: rgba(245,166,35,0.20);
+  border-color: rgba(245,166,35,0.60);
+  color: var(--accent);
+}
+.touch-gyro-btn:active {
+  background: rgba(245,166,35,0.30);
+}
+
+/* ── Prevent text selection / callouts during drag ───────────────── */
+.touch-overlay * {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
 }

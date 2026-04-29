@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { inputState } from './inputState.js';
 
 // ─── Constants ───────────────────────────────────────────────────────────────
 const BODY_COLOR   = 0xf5a623;
@@ -7,8 +8,6 @@ const HEAD_COLOR   = 0x2a2000;
 const WING_COLOR   = 0xaee8ff;
 const EYE_COLOR    = 0x330000;
 
-const DEG = Math.PI / 180;   // degrees → radians
-
 export const FLIGHT = { FREE: 'free', HOVER: 'hover' };
 
 const PARAMS = {
@@ -16,41 +15,24 @@ const PARAMS = {
   maxSpeed:          8.0,
   accel:             4.0,
   braking:           5.0,
-  headYawRate:       2.0,   // rad/s continuous A/D yaw
-  bodyYawFollow:     6.0,   // rad/s — fast catch-up: head leads by ~100 ms then body snaps (bee zig-zag)
+  headYawRate:       2.0,   // rad/s continuous yaw
+  bodyYawFollow:     6.0,   // rad/s — body snaps ~100 ms after head (bee saccade zig-zag)
   minHoverSpeed:     0.6,
   climbRate:         3.0,   // AGL target change rate in free flight (m/s)
-  // Hover (much smaller movements)
+  // Hover
   hoverMoveSpeed:    0.6,
   hoverYawRate:      0.8,
   hoverClimbRate:    1.0,   // AGL target change rate in hover (m/s)
   // Terrain following
   minHeight:         0.5,   // minimum AGL (metres above ground)
-  maxAGL:           60.0,   // maximum AGL
-  terrainFollowRate: 6.0,   // how quickly the bee tracks terrain changes (higher = snappier)
+  maxAGL:           60.0,
+  terrainFollowRate: 6.0,
   // Animation
   wingFlapRate:     12.0,
   wingFlapAmp:       0.45,
 };
 
-// Discrete saccade map: keys 1-5 = anti-clockwise (positive headYaw),
-// keys 6-0 = clockwise (negative headYaw).  Applied once per keydown.
-const SACCADE_MAP = {
-  'Digit1':  75 * DEG,
-  'Digit2':  30 * DEG,
-  'Digit3':  15 * DEG,
-  'Digit4':   5 * DEG,
-  'Digit5':   2 * DEG,
-  'Digit6':  -2 * DEG,
-  'Digit7':  -5 * DEG,
-  'Digit8': -15 * DEG,
-  'Digit9': -30 * DEG,
-  'Digit0': -75 * DEG,
-};
-
 // ─── Bee Model Builder ───────────────────────────────────────────────────────
-// All Z positions shifted −0.20 so the thorax (rotation pivot, z=0) sits at
-// the bee's visual centre.  Range: head tip ≈ −0.68 … stinger tip ≈ +0.68.
 function buildBeeModel() {
   const group = new THREE.Group();
   group.name = 'beeRoot';
@@ -59,7 +41,7 @@ function buildBeeModel() {
   bodyGroup.name = 'bodyGroup';
   group.add(bodyGroup);
 
-  // ── Abdomen (z=0.25, was 0.45) ──────────────────────────────────────────
+  // ── Abdomen ──────────────────────────────────────────────────────────────
   const abdGeo = new THREE.SphereGeometry(0.28, 10, 8);
   abdGeo.scale(1, 0.85, 1.7);
   const abdomen = new THREE.Mesh(abdGeo, new THREE.MeshLambertMaterial({ color: BODY_COLOR }));
@@ -67,7 +49,7 @@ function buildBeeModel() {
   abdomen.name = 'abdomen';
   bodyGroup.add(abdomen);
 
-  // ── Stripes (z = 0.08 + [0, 0.2, 0.42]) ────────────────────────────────
+  // ── Stripes ───────────────────────────────────────────────────────────────
   [0.0, 0.2, 0.42].forEach((z, i) => {
     const sg = new THREE.TorusGeometry(0.24, 0.07, 6, 16);
     const stripe = new THREE.Mesh(sg, new THREE.MeshLambertMaterial({
@@ -79,14 +61,14 @@ function buildBeeModel() {
     bodyGroup.add(stripe);
   });
 
-  // ── Thorax (z≈0 — this IS the rotation pivot) ───────────────────────────
+  // ── Thorax ────────────────────────────────────────────────────────────────
   const thrGeo = new THREE.SphereGeometry(0.2, 8, 6);
   thrGeo.scale(1, 0.9, 1.2);
   const thorax = new THREE.Mesh(thrGeo, new THREE.MeshLambertMaterial({ color: BODY_COLOR }));
   thorax.position.set(0, 0.02, 0);
   bodyGroup.add(thorax);
 
-  // ── Wings (front pair z=−0.28, rear pair z=−0.08) ───────────────────────
+  // ── Wings ─────────────────────────────────────────────────────────────────
   const wingShape = new THREE.Shape();
   wingShape.ellipse(0, 0, 0.55, 0.22, 0, Math.PI * 2);
   const wingGeo = new THREE.ShapeGeometry(wingShape, 12);
@@ -107,7 +89,7 @@ function buildBeeModel() {
     bodyGroup.add(wing);
   });
 
-  // ── Legs (z shifted −0.20) ───────────────────────────────────────────────
+  // ── Legs ──────────────────────────────────────────────────────────────────
   const legMat = new THREE.LineBasicMaterial({ color: 0x1a1000 });
   [
     [-0.24, 0, -0.30], [-0.24, 0, -0.15], [-0.24, 0,  0.00],
@@ -120,7 +102,7 @@ function buildBeeModel() {
     bodyGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), legMat));
   });
 
-  // ── Head group (z=−0.50, was −0.30) ─────────────────────────────────────
+  // ── Head group ────────────────────────────────────────────────────────────
   const headGroup = new THREE.Group();
   headGroup.name = 'headGroup';
   headGroup.position.set(0, 0.05, -0.50);
@@ -131,7 +113,6 @@ function buildBeeModel() {
     new THREE.MeshLambertMaterial({ color: HEAD_COLOR }),
   ));
 
-  // Compound eyes
   const eyeMat = new THREE.MeshLambertMaterial({ color: EYE_COLOR });
   [-1, 1].forEach(side => {
     const eye = new THREE.Mesh(new THREE.SphereGeometry(0.08, 6, 5), eyeMat);
@@ -140,7 +121,6 @@ function buildBeeModel() {
     headGroup.add(eye);
   });
 
-  // Antennae
   const antMat = new THREE.LineBasicMaterial({ color: 0x111100 });
   [-1, 1].forEach(side => {
     const pts = [
@@ -151,7 +131,7 @@ function buildBeeModel() {
     headGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts), antMat));
   });
 
-  // ── Stinger (z=0.62, was 0.82) ──────────────────────────────────────────
+  // ── Stinger ───────────────────────────────────────────────────────────────
   const stinger = new THREE.Mesh(
     new THREE.ConeGeometry(0.03, 0.12, 5),
     new THREE.MeshLambertMaterial({ color: 0x1a0000 }),
@@ -182,40 +162,8 @@ export class BeeController {
     this.hoverVelZ = 0;
     this.wingPhase = 0;
 
-    // Target height above the terrain surface (AGL).
-    // Initialised from the bee's starting absolute Y minus the terrain
-    // directly below so the first frame causes no sudden jump.
     const startGround = getTerrainHeight(0, 10);
     this.targetAGL = Math.max(PARAMS.minHeight, 4 - startGround);
-
-    this.keys = {};
-    this._setupKeys();
-  }
-
-  _setupKeys() {
-    this._onKeyDown = (e) => {
-      this.keys[e.code] = true;
-
-      if (e.code === 'KeyH' || e.code === 'Tab') {
-        e.preventDefault();
-        this._tryToggleFlightMode();
-      }
-
-      // Discrete saccades — one-shot on press (e.repeat guards auto-fire)
-      if (!e.repeat && SACCADE_MAP[e.code] !== undefined) {
-        const delta = SACCADE_MAP[e.code];
-        if (this.flightMode === FLIGHT.FREE) {
-          // Free flight: instant head snap, body follows gradually
-          this.headYaw = Math.max(-Math.PI, Math.min(Math.PI, this.headYaw + delta));
-        } else {
-          // Hover: direct body yaw
-          this.bodyYaw += delta;
-        }
-      }
-    };
-    this._onKeyUp = (e) => { this.keys[e.code] = false; };
-    window.addEventListener('keydown', this._onKeyDown);
-    window.addEventListener('keyup',   this._onKeyUp);
   }
 
   _tryToggleFlightMode() {
@@ -232,47 +180,60 @@ export class BeeController {
     }
   }
 
-  get flightModeLabel() { return this.flightMode === FLIGHT.FREE ? 'Free Flight' : 'Hover'; }
+  get flightModeLabel() { return this.flightMode === FLIGHT.FREE ? 'Fast' : 'Hover'; }
 
-  // World-space vectors
   get bodyForward() {
     return new THREE.Vector3(-Math.sin(this.bodyYaw), 0, -Math.cos(this.bodyYaw));
   }
-  // 90° CCW from bodyForward in XZ plane → the bee's right side
   get bodyRight() {
     return new THREE.Vector3(Math.cos(this.bodyYaw), 0, -Math.sin(this.bodyYaw));
   }
 
+  /**
+   * update(dt) — reads from the shared inputState (written by
+   * KeyboardController + TouchController each frame before this call).
+   */
   update(dt) {
-    const k = this.keys;
-    const p = PARAMS;
+    const inp = inputState;
+    const p   = PARAMS;
 
-    if (this.flightMode === FLIGHT.FREE) {
-      this._updateFreeFlight(dt, k, p);
-    } else {
-      this._updateHover(dt, k, p);
+    // ── Consume one-shot events ───────────────────────────────────────
+    if (inp.modeToggle) {
+      inp.modeToggle = false;
+      this._tryToggleFlightMode();
     }
 
-    // ── Terrain-following AGL control ────────────────────────────────
-    // Space / Shift adjust the *target height above ground* (AGL), not
-    // absolute altitude.  The bee then smoothly tracks the terrain surface
-    // so it behaves like optic-flow-based terrain following.
-    const climbR = this.flightMode === FLIGHT.FREE ? p.climbRate : p.hoverClimbRate;
-    if (k['Space'])
-      this.targetAGL = Math.min(this.targetAGL + climbR * dt, p.maxAGL);
-    if (k['ShiftLeft'] || k['ShiftRight'] || k['ControlLeft'])
-      this.targetAGL = Math.max(this.targetAGL - climbR * dt, p.minHeight);
+    if (this.flightMode === FLIGHT.FREE) {
+      this._updateFreeFlight(dt, inp, p);
+    } else {
+      this._updateHover(dt, inp, p);
+    }
 
-    // Smoothly drive position.y toward (terrainHeight + targetAGL).
-    // The exponential approach keeps the ride smooth over gradual slopes;
-    // the hard floor prevents clipping on sharp ridges.
+    // ── Terrain-following AGL control ─────────────────────────────────
+    const climbR = this.flightMode === FLIGHT.FREE ? p.climbRate : p.hoverClimbRate;
+    if (inp.climb > 0)
+      this.targetAGL = Math.min(this.targetAGL + climbR * inp.climb * dt, p.maxAGL);
+    if (inp.climb < 0)
+      this.targetAGL = Math.max(this.targetAGL + climbR * inp.climb * dt, p.minHeight);
+
     const ty      = this.getTerrainHeight(this.position.x, this.position.z);
     const targetY = ty + this.targetAGL;
     const alpha   = Math.min(1, p.terrainFollowRate * dt);
     this.position.y += (targetY - this.position.y) * alpha;
     if (this.position.y < ty + p.minHeight) this.position.y = ty + p.minHeight;
 
-    // Wing animation
+    // ── World boundary — hard stop at ±100 m ─────────────────────────
+    // Clamp position and zero all movement so the user must yaw to re-enter.
+    const WORLD = 100;
+    if (Math.abs(this.position.x) > WORLD || Math.abs(this.position.z) > WORLD) {
+      this.position.x = Math.max(-WORLD, Math.min(WORLD, this.position.x));
+      this.position.z = Math.max(-WORLD, Math.min(WORLD, this.position.z));
+      this.speed      = 0;
+      this.hoverVelX  = 0;
+      this.hoverVelZ  = 0;
+    }
+
+    // ── Wing animation ────────────────────────────────────────────────
     this.wingPhase += p.wingFlapRate * dt * Math.PI * 2;
     const wa = Math.sin(this.wingPhase) * p.wingFlapAmp;
     [0, 1, 2, 3].forEach(i => {
@@ -280,74 +241,76 @@ export class BeeController {
       if (wing) wing.rotation.z = (i % 2 === 0 ? 1 : -1) * wa;
     });
 
-    // Sync Three.js transforms
+    // ── Sync Three.js transforms ──────────────────────────────────────
     this.mesh.position.copy(this.position);
     this.bodyGroup.rotation.y = this.bodyYaw;
     this.headGroup.rotation.y = this.headYaw;
   }
 
-  _updateFreeFlight(dt, k, p) {
-    // Continuous head yaw — body follows at bodyYawFollow rate
-    if (k['KeyA'] || k['ArrowLeft'])
-      this.headYaw = Math.min(this.headYaw + p.headYawRate * dt,  Math.PI);
-    if (k['KeyD'] || k['ArrowRight'])
-      this.headYaw = Math.max(this.headYaw - p.headYawRate * dt, -Math.PI);
+  _updateFreeFlight(dt, inp, p) {
+    // Consume saccade (free flight: instant head snap, body follows)
+    if (inp.saccade !== 0) {
+      this.headYaw = Math.max(-Math.PI, Math.min(Math.PI, this.headYaw + inp.saccade));
+      inp.saccade = 0;
+    }
 
-    // Body follows head (slow so saccade is visible)
-    const dYaw   = this.headYaw;   // headYaw is already relative to body
+    // Continuous head yaw from axis input
+    if (inp.yaw !== 0)
+      this.headYaw = Math.max(-Math.PI, Math.min(Math.PI,
+        this.headYaw + p.headYawRate * inp.yaw * dt));
+
+    // Body follows head
+    const dYaw   = this.headYaw;
     const follow = Math.sign(dYaw) * Math.min(Math.abs(dYaw), p.bodyYawFollow * dt);
     this.bodyYaw += follow;
     this.headYaw -= follow;
 
-    // Speed
-    if (k['KeyW'] || k['ArrowUp'])
-      this.speed = Math.min(this.speed + p.accel * dt, p.maxSpeed);
-    else if (k['KeyS'] || k['ArrowDown'])
-      this.speed = Math.max(this.speed - p.braking * dt, 0);
-    else
-      this.speed = Math.max(this.speed - p.braking * 0.3 * dt, 0);
+    // Speed — accelerate on forward input, brake on back input, HOLD on release
+    if (inp.move.fwd > 0)
+      this.speed = Math.min(this.speed + p.accel * inp.move.fwd * dt, p.maxSpeed);
+    else if (inp.move.fwd < 0)
+      this.speed = Math.max(this.speed + p.braking * inp.move.fwd * dt, 0);
 
-    // Movement along body heading (not head — head is just looking)
     const fwd = this.bodyForward;
     this.position.x += fwd.x * this.speed * dt;
     this.position.z += fwd.z * this.speed * dt;
-    // Vertical: handled by terrain-following AGL control in update()
   }
 
-  _updateHover(dt, k, p) {
-    // Yaw: Q/E keys (continuous).  Digit keys handled in _onKeyDown (one-shot).
-    if (k['KeyQ']) this.bodyYaw += p.hoverYawRate * dt;
-    if (k['KeyE']) this.bodyYaw -= p.hoverYawRate * dt;
+  _updateHover(dt, inp, p) {
+    // Consume saccade (hover: direct body yaw)
+    if (inp.saccade !== 0) {
+      this.bodyYaw += inp.saccade;
+      inp.saccade = 0;
+    }
 
-    // Gradually re-centre head
+    // Continuous yaw
+    if (inp.yaw !== 0)
+      this.bodyYaw += p.hoverYawRate * inp.yaw * dt;
+
+    // Re-centre head
     this.headYaw *= Math.max(0, 1 - dt * 4);
 
-    // Translation: W/S = forward/back, A/D = strafe left/right
+    // Translation
     const fwd   = this.bodyForward;
     const right = this.bodyRight;
     let vx = 0, vz = 0;
-    if (k['KeyW'] || k['ArrowUp'])    { vx += fwd.x;   vz += fwd.z;   }
-    if (k['KeyS'] || k['ArrowDown'])  { vx -= fwd.x;   vz -= fwd.z;   }
-    if (k['KeyA'] || k['ArrowLeft'])  { vx -= right.x; vz -= right.z; } // strafe left
-    if (k['KeyD'] || k['ArrowRight']) { vx += right.x; vz += right.z; } // strafe right
+    if (inp.move.fwd   >  0) { vx += fwd.x   * inp.move.fwd;   vz += fwd.z   * inp.move.fwd;   }
+    if (inp.move.fwd   <  0) { vx += fwd.x   * inp.move.fwd;   vz += fwd.z   * inp.move.fwd;   }
+    if (inp.move.strafe !== 0) { vx += right.x * inp.move.strafe; vz += right.z * inp.move.strafe; }
 
     const smooth = Math.min(1, dt * 6);
     this.hoverVelX += (vx * p.hoverMoveSpeed - this.hoverVelX) * smooth;
     this.hoverVelZ += (vz * p.hoverMoveSpeed - this.hoverVelZ) * smooth;
     this.position.x += this.hoverVelX * dt;
     this.position.z += this.hoverVelZ * dt;
-
-    // Vertical: handled by terrain-following AGL control in update()
   }
 
-  // Head world position (camera / eye attachment point)
   get headWorldPosition() {
-    const headLocal = new THREE.Vector3(0, 0.05, -0.50); // matches headGroup z
+    const headLocal = new THREE.Vector3(0, 0.05, -0.50);
     headLocal.applyEuler(new THREE.Euler(0, this.bodyYaw, 0));
     return this.position.clone().add(headLocal).add(new THREE.Vector3(0, 0.05, 0));
   }
 
-  // Head world direction (head yaw = body yaw + relative headYaw)
   get headWorldDirection() {
     const hy = this.bodyYaw + this.headYaw;
     return new THREE.Vector3(-Math.sin(hy), 0, -Math.cos(hy));
@@ -374,8 +337,7 @@ export class BeeController {
     this.targetAGL  = data.targetAGL  ?? PARAMS.minHeight + 3;
   }
 
-  dispose() {
-    window.removeEventListener('keydown', this._onKeyDown);
-    window.removeEventListener('keyup',   this._onKeyUp);
-  }
+  // dispose is now a no-op for the bee itself — keyboard listeners live in
+  // KeyboardController.  Kept for API compatibility.
+  dispose() {}
 }

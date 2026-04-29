@@ -13,6 +13,8 @@ export default function ViewportContainer({
   viewport2Ref,
   view1Type, view2Type,
   onView1Change, onView2Change,
+  mobileOnly = false,
+  touchControlsProps = null,
 }) {
   const [splitPercent, setSplitPercent]   = useState(50);
   const [leftCollapsed, setLeftCollapsed]  = useState(false);
@@ -86,6 +88,24 @@ export default function ViewportContainer({
     rightFlex = `0 0 ${100 - splitPercent}%`;
   }
 
+  // ── Mobile: single full-width viewport, no split ────────────────────
+  if (mobileOnly) {
+    return (
+      <div className="viewport-container">
+        <div style={{ flex: '1 1 0', display: 'flex', minWidth: 0, overflow: 'hidden' }}>
+          <Viewport
+            ref={viewport1Ref}
+            viewType={view1Type}
+            onViewChange={onView1Change}
+            simRef={simRef}
+            label="A"
+            touchControlsProps={touchControlsProps}
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div
       ref={containerRef}
@@ -113,6 +133,7 @@ export default function ViewportContainer({
             onViewChange={onView1Change}
             simRef={simRef}
             label="A"
+            touchControlsProps={touchControlsProps}
           />
         </div>
       )}
@@ -135,6 +156,7 @@ export default function ViewportContainer({
             onViewChange={onView2Change}
             simRef={simRef}
             label="B"
+            touchControlsProps={touchControlsProps}
           />
         </div>
       )}
