@@ -14,7 +14,7 @@ const PARAMS = {
   // Free flight
   maxSpeed:          8.0,
   accel:             4.0,
-  braking:           5.0,
+  braking:           20.0,
   headYawRate:       2.0,   // rad/s continuous yaw
   bodyYawFollow:     6.0,   // rad/s — body snaps ~100 ms after head (bee saccade zig-zag)
   minHoverSpeed:     0.6,
