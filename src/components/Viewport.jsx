@@ -339,15 +339,27 @@ const Viewport = forwardRef(function Viewport(
   const isBeeEye = viewType === 'bee_eye';
   const isMap    = viewType === 'god_map';
 
+  // Mobile speed overlay colour — chosen to be legible against each view's typical bg
+  const mobileSpeedColor =
+    viewType === 'bee_eye' ? 'rgba(160,255,160,0.90)'   // light green on black
+    : viewType === 'god_map' ? 'rgba(255,255,160,0.90)' // pale yellow on green terrain
+    : 'rgba(255,255,255,0.88)';                         // white on sky (3rd / 1st person)
+
   return (
     <div className="viewport">
       <div className="viewport-label">{VIEW_LABELS[viewType] || viewType}</div>
-      {label && (
+
+      {/* Mobile speed readout — top-right corner, only on touch devices */}
+      {IS_MOBILE_INIT && touchControlsProps && (
         <div style={{
-          position: 'absolute', top: 6, right: 8, fontSize: 10,
-          color: 'rgba(255,255,255,0.25)', zIndex: 10, pointerEvents: 'none',
+          position: 'absolute', top: 8, right: 10, zIndex: 20,
+          pointerEvents: 'none',
+          fontFamily: 'monospace', fontSize: 13, fontWeight: 600,
+          color: mobileSpeedColor,
+          textShadow: '0 1px 3px rgba(0,0,0,0.6)',
+          lineHeight: 1,
         }}>
-          {label}
+          {(touchControlsProps.speed ?? 0).toFixed(1)} m/s
         </div>
       )}
 
