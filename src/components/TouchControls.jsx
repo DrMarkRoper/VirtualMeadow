@@ -46,14 +46,12 @@ function drawStick(canvas, state, opts = {}) {
   const { active, dx = 0, dy = 0 } = state;
   const { lockedX = false, axisLabels = null } = opts;  // lockedX = fast-mode right stick
 
-  // Outer ring — amber when active, muted when locked
+  // Outer ring — amber when active, normal white ring otherwise
   ctx.beginPath();
   ctx.arc(cx, cy, OUTER_R, 0, Math.PI * 2);
   ctx.strokeStyle = active
     ? 'rgba(245,166,35,0.60)'
-    : lockedX
-      ? 'rgba(255,255,255,0.10)'
-      : 'rgba(255,255,255,0.20)';
+    : 'rgba(255,255,255,0.20)';
   ctx.lineWidth = 2;
   ctx.stroke();
 
@@ -66,7 +64,7 @@ function drawStick(canvas, state, opts = {}) {
   }
 
   // Cross-hair
-  const hairColor = lockedX ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.09)';
+  const hairColor = 'rgba(255,255,255,0.09)';
   ctx.beginPath();
   ctx.moveTo(cx - OUTER_R + 8, cy); ctx.lineTo(cx + OUTER_R - 8, cy);
   // In fast mode, suppress horizontal line to indicate axis is locked
@@ -83,14 +81,16 @@ function drawStick(canvas, state, opts = {}) {
   if (axisLabels) {
     ctx.font = '8px system-ui';
     ctx.textAlign = 'center';
-    ctx.fillStyle = lockedX ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.28)';
+    ctx.fillStyle = 'rgba(255,255,255,0.28)';
     ctx.fillText(axisLabels.top,    cx, cy - OUTER_R + 13);
     ctx.fillText(axisLabels.bottom, cx, cy + OUTER_R - 3);
     if (!lockedX && axisLabels.left && axisLabels.right) {
+      // Left label: right-aligned, nudged inward so text isn't clipped by the ring edge
       ctx.textAlign = 'right';
-      ctx.fillText(axisLabels.left,  cx - OUTER_R + 7, cy + 4);
+      ctx.fillText(axisLabels.left,  cx - OUTER_R + 13, cy + 4);
+      // Right label: left-aligned, nudged inward symmetrically
       ctx.textAlign = 'left';
-      ctx.fillText(axisLabels.right, cx + OUTER_R - 7, cy + 4);
+      ctx.fillText(axisLabels.right, cx + OUTER_R - 13, cy + 4);
     }
     // When lockedX (fast-mode RHS) we simply show no horizontal labels —
     // the 'ALT ONLY' text is already displayed in the vjoy-label below the canvas.
@@ -111,9 +111,6 @@ function drawStick(canvas, state, opts = {}) {
   if (active) {
     grad.addColorStop(0, 'rgba(255,215,80,0.95)');
     grad.addColorStop(1, 'rgba(200,130,0,0.88)');
-  } else if (lockedX) {
-    grad.addColorStop(0, 'rgba(150,150,150,0.60)');
-    grad.addColorStop(1, 'rgba(80,80,80,0.50)');
   } else {
     grad.addColorStop(0, 'rgba(210,210,210,0.85)');
     grad.addColorStop(1, 'rgba(100,100,100,0.72)');
@@ -128,9 +125,7 @@ function drawStick(canvas, state, opts = {}) {
   ctx.arc(nx, ny, INNER_R, 0, Math.PI * 2);
   ctx.strokeStyle = active
     ? 'rgba(255,200,60,0.85)'
-    : lockedX
-      ? 'rgba(255,255,255,0.15)'
-      : 'rgba(255,255,255,0.30)';
+    : 'rgba(255,255,255,0.30)';
   ctx.lineWidth = 1.5;
   ctx.stroke();
 }
@@ -167,6 +162,11 @@ export default function TouchControls({
   const lState = useRef({ active: false, id: null, dx: 0, dy: 0 });
   const rState = useRef({ active: false, id: null, dx: 0, dy: 0 });
 
+  // Keep a ref so event-handler closures always see the latest isHover
+  // without needing to recreate handlers on every mode change.
+  const isHoverRef = useRef(isHover);
+  useEffect(() => { isHoverRef.current = isHover; }, [isHover]);
+
   // ── Draw helpers ─────────────────────────────────────────────────
   const redrawLeft = useCallback(() => {
     // Fast mode:  LHS X = yaw        → YL / YR
@@ -175,8 +175,8 @@ export default function TouchControls({
       axisLabels: {
         top:    '▲ FWD',
         bottom: '▼ BACK',
-        left:   isHover ? '◀ SL' : '◀ YL',
-        right:  isHover ? 'SR ▶' : 'YR ▶',
+        left:   isHover ? 'SL' : 'YL',
+        right:  isHover ? 'SR' : 'YR',
       },
     });
   }, [isHover]);
@@ -189,8 +189,8 @@ export default function TouchControls({
       axisLabels: {
         top:    '▲ UP',
         bottom: '▼ DN',
-        left:   isHover ? '◀ YL' : undefined,
-        right:  isHover ? 'YR ▶' : undefined,
+        left:   isHover ? 'YL' : undefined,
+        right:  isHover ? 'YR' : undefined,
       },
     });
   }, [isHover]);
@@ -209,11 +209,25 @@ export default function TouchControls({
     const ln = lState.current.active
       ? [lState.current.dx / MAX_DIST, lState.current.dy / MAX_DIST]
       : [0, 0];
-    const rn = rState.current.active
-      ? [rState.current.dx / MAX_DIST, rState.current.dy / MAX_DIST]
-      : [0, 0];
+
+    let rx = 0, ry = 0;
+    if (rState.current.active) {
+      const rawX = rState.current.dx / MAX_DIST;
+      const rawY = rState.current.dy / MAX_DIST;
+      if (isHoverRef.current) {
+        // Cross-joystick: only the dominant axis fires.
+        // This prevents mixing height and yaw inputs which makes hover hard to control.
+        if (Math.abs(rawX) >= Math.abs(rawY)) {
+          rx = rawX; ry = 0;
+        } else {
+          rx = 0;    ry = rawY;
+        }
+      } else {
+        rx = rawX; ry = rawY;
+      }
+    }
     tc.setLeftStick(ln[0], ln[1]);
-    tc.setRightStick(rn[0], rn[1]);
+    tc.setRightStick(rx, ry);
   }, [touchControllerRef]);
 
   // ── Touch wiring ────────────────────────────────────────────────
@@ -386,16 +400,16 @@ export default function TouchControls({
       <div className="touch-saccade-group touch-saccade-right">
         <button
           className="touch-saccade-btn"
-          onTouchStart={(e) => saccade('right', 'small', e)}
-          onMouseDown={(e)  => saccade('right', 'small', e)}
-          title="Saccade right 15°"
-        >↻<span>15°</span></button>
-        <button
-          className="touch-saccade-btn"
           onTouchStart={(e) => saccade('right', 'large', e)}
           onMouseDown={(e)  => saccade('right', 'large', e)}
           title="Saccade right 30°"
         >↻<span>30°</span></button>
+        <button
+          className="touch-saccade-btn"
+          onTouchStart={(e) => saccade('right', 'small', e)}
+          onMouseDown={(e)  => saccade('right', 'small', e)}
+          title="Saccade right 15°"
+        >↻<span>15°</span></button>
       </div>
 
       {/* ── Top bar ────────────────────────────────── */}
