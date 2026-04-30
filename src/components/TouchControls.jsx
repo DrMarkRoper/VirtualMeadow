@@ -184,7 +184,16 @@ export default function TouchControls({
   const redrawRight = useCallback(() => {
     // Fast mode:  RHS X locked (alt only)
     // Hover mode: RHS X = yaw        → YL / YR
-    drawStick(rCanvasRef.current, rState.current, {
+    // In hover mode snap the nub to the dominant axis so the visual matches
+    // the cross-joystick behaviour applied in pushAxes.
+    let drawState = rState.current;
+    if (isHover && drawState.active) {
+      const { dx, dy } = drawState;
+      drawState = Math.abs(dx) >= Math.abs(dy)
+        ? { ...drawState, dy: 0 }
+        : { ...drawState, dx: 0 };
+    }
+    drawStick(rCanvasRef.current, drawState, {
       lockedX: !isHover,
       axisLabels: {
         top:    '▲ UP',
